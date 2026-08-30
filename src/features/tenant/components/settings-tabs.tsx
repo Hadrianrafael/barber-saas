@@ -9,10 +9,12 @@ import {
   HolidaysPanel,
   BookingConfigPanel,
   ChatbotPanel,
+  LoyaltyConfigPanel,
   BrandingPanel,
   type TenantData,
 } from "./settings-panels";
 import type { ChatbotConfig } from "@/features/chatbot/config";
+import type { LoyaltyConfig } from "@/features/loyalty/config";
 
 export function SettingsTabs({
   tenant,
@@ -20,12 +22,14 @@ export function SettingsTabs({
   holidays,
   bookingConfig,
   chatbotConfig,
+  loyaltyConfig,
 }: {
   tenant: TenantData;
   hours: { weekday: number; startMin: number; endMin: number }[];
   holidays: { id: string; date: string; name: string; isClosed: boolean }[];
   bookingConfig: React.ComponentProps<typeof BookingConfigPanel>["config"];
   chatbotConfig: ChatbotConfig;
+  loyaltyConfig: LoyaltyConfig;
 }) {
   const t = useTranslations("settings");
   return (
@@ -38,6 +42,7 @@ export function SettingsTabs({
         <TabsTrigger value="holidays">{t("tabHolidays")}</TabsTrigger>
         <TabsTrigger value="booking">{t("tabBooking")}</TabsTrigger>
         <TabsTrigger value="chatbot">{t("tabChatbot")}</TabsTrigger>
+        <TabsTrigger value="loyalty">{t("tabLoyalty")}</TabsTrigger>
       </TabsList>
       <TabsContent value="profile">
         <ProfilePanel tenant={tenant} />
@@ -59,6 +64,9 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="chatbot">
         <ChatbotPanel config={chatbotConfig} />
+      </TabsContent>
+      <TabsContent value="loyalty">
+        <LoyaltyConfigPanel config={loyaltyConfig} />
       </TabsContent>
     </Tabs>
   );

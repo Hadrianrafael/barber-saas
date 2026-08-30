@@ -39,6 +39,8 @@ export type Permission =
   | "conversation.read"
   | "conversation.handle"
   | "import.run"
+  | "loyalty.manage"
+  | "review.moderate"
   | "audit.read";
 
 const OWNER_PERMS: Permission[] = [
@@ -67,6 +69,8 @@ const OWNER_PERMS: Permission[] = [
   "conversation.read",
   "conversation.handle",
   "import.run",
+  "loyalty.manage",
+  "review.moderate",
   "audit.read",
 ];
 
@@ -92,6 +96,8 @@ const MANAGER_PERMS: Permission[] = [
   "conversation.read",
   "conversation.handle",
   "import.run",
+  "loyalty.manage",
+  "review.moderate",
 ];
 
 const BARBER_PERMS: Permission[] = [

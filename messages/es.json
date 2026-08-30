@@ -41,7 +41,10 @@
     "settings": "Configuración",
     "logout": "Salir",
     "payments": "Pagos",
-    "messages": "Mensajes"
+    "messages": "Mensajes",
+    "loyalty": "Fidelización",
+    "reviews": "Reseñas",
+    "import": "Importar"
   },
   "auth": {
     "signInTitle": "Iniciar sesión",
@@ -223,7 +226,14 @@
     "chatbotInstructions": "Instrucciones para la IA",
     "chatbotInstructionsHint": "Tono de voz y notas de la barbería. No cambia lo que la IA puede hacer.",
     "chatbotHandoffKeywords": "Palabras que derivan a un humano",
-    "chatbotHandoffKeywordsHint": "Separadas por comas. Si el mensaje contiene una, pasa directo a un humano."
+    "chatbotHandoffKeywordsHint": "Separadas por comas. Si el mensaje contiene una, pasa directo a un humano.",
+    "tabLoyalty": "Fidelización",
+    "loyaltyEnabled": "Activar el programa de fidelización",
+    "loyaltyEnabledHint": "Los puntos se acreditan automáticamente cuando se completa una cita.",
+    "pointsPerVisit": "Puntos por visita",
+    "pointsPerCurrencyCents": "Céntimos por punto extra",
+    "pointsExpireDays": "Caducidad (días, 0 = nunca)",
+    "pointsPerCurrencyHint": "Ej.: 100 = 1 punto extra por cada 1,00 gastado. 0 desactiva el bono por valor."
   },
   "publicPage": {
     "bookCta": "Reservar",
@@ -833,7 +843,8 @@
       "APPOINTMENT_NOT_FOUND": "Reserva no encontrada.",
       "INVALID_TRANSITION": "Esta reserva ya no se puede modificar.",
       "VALIDATION": "No se pudo completar con estos datos."
-    }
+    },
+    "leaveReview": "Dejar una reseña"
   },
   "chatbot": {
     "launcher": "Escríbenos",
@@ -884,6 +895,188 @@
       "agent": "Agente",
       "tool": "Herramienta",
       "system": "Sistema"
+    }
+  },
+  "loyalty": {
+    "title": "Fidelización",
+    "subtitle": "Puntos, recompensas y cupones.",
+    "disabled": "El programa está desactivado.",
+    "goToSettings": "Actívalo en ajustes",
+    "activeSummary": "Programa activo · {visit} pts/visita · {value}",
+    "perValue": "+1 pt por cada {cents} céntimos",
+    "rewards": "Recompensas",
+    "noRewards": "Aún no hay recompensas.",
+    "points": "puntos",
+    "disable": "Desactivar",
+    "enable": "Activar",
+    "newReward": "Nueva recompensa",
+    "name": "Nombre",
+    "pointsCost": "Coste en puntos",
+    "type": "Tipo",
+    "percentOff": "Descuento %",
+    "amountOff": "Descuento (importe)",
+    "service": "Servicio",
+    "description": "Descripción",
+    "addReward": "Añadir recompensa",
+    "rewardCreated": "Recompensa creada.",
+    "kind": {
+      "discount": "Descuento",
+      "free_service": "Servicio gratis",
+      "custom": "Personalizada"
+    },
+    "customerPoints": "Puntos por cliente",
+    "searchCustomer": "Buscar cliente…",
+    "change": "Cambiar",
+    "adjustPoints": "Ajustar puntos",
+    "apply": "Aplicar",
+    "done": "Hecho.",
+    "redeem": "Canjear",
+    "redeemBtn": "Canjear",
+    "coupon": "Cupón",
+    "recent": "Actividad reciente",
+    "noActivity": "Sin movimientos.",
+    "err": {
+      "INSUFFICIENT_POINTS": "Puntos insuficientes."
+    },
+    "activity": {
+      "appointment_completed": "cita completada",
+      "reward_redeemed": "recompensa canjeada",
+      "adjustment": "ajuste manual",
+      "manual": "manual"
+    },
+    "reason": "Motivo"
+  },
+  "reviews": {
+    "title": "Reseñas",
+    "subtitle": "Modera y sigue tu reputación.",
+    "overall": "Media general",
+    "perBarber": "Por profesional",
+    "filter": {
+      "pending": "Pendientes",
+      "published": "Publicadas",
+      "all": "Todas"
+    },
+    "empty": "Sin reseñas.",
+    "published": "publicada",
+    "pending": "pendiente",
+    "hide": "Ocultar",
+    "approve": "Aprobar",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "rating": "Puntuación",
+    "commentPlaceholder": "Cuéntanos qué tal (opcional)…",
+    "submit": "Enviar reseña",
+    "thanks": "¡Gracias por tu reseña!",
+    "publicTitle": "¿Qué tal tu visita a {shop}?",
+    "alreadyReviewed": "Ya valoraste esta visita ({rating}★).",
+    "notEligible": "Esta visita aún no se puede valorar.",
+    "err": {
+      "generic": "No se pudo enviar.",
+      "NOT_ELIGIBLE": "Visita no completada.",
+      "ALREADY_REVIEWED": "Ya la valoraste.",
+      "NOT_FOUND": "No encontrada.",
+      "rateLimited": "Demasiados intentos. Espera."
+    }
+  },
+  "importContacts": {
+    "title": "Importar clientes",
+    "subtitle": "CSV con nombre + correo/teléfono. Sin opt-in automático.",
+    "uploadTitle": "Subir un archivo",
+    "uploadHint": "Formato CSV (exporta desde Excel/Sheets). Máx. 2 MB, 5000 filas. Columnas aceptadas: nombre, email, teléfono, whatsapp, notas, tags.",
+    "upload": "Subir y previsualizar",
+    "total": "Total",
+    "valid": "Válidos",
+    "duplicates": "Duplicados",
+    "errors": "Errores",
+    "name": "Nombre",
+    "contact": "Contacto",
+    "status": "Estado",
+    "rowStatus": {
+      "ok": "OK",
+      "duplicate": "Duplicado",
+      "error": "Error"
+    },
+    "rowErr": {
+      "name_required": "nombre obligatorio",
+      "bad_email": "correo inválido",
+      "bad_phone": "teléfono inválido",
+      "no_contact": "sin correo/teléfono"
+    },
+    "truncatedPreview": "Mostrando 200 de {n} filas.",
+    "alsoImportDuplicates": "Importar también los duplicados",
+    "confirmImport": "Importar {n} contactos",
+    "noOptInNote": "No se marca ningún consentimiento de marketing.",
+    "imported": "{n} importados · {skipped} omitidos.",
+    "history": "Historial",
+    "state": {
+      "pending": "pendiente",
+      "previewed": "previsualizado",
+      "importing": "importando",
+      "completed": "completado",
+      "failed": "falló"
+    },
+    "err": {
+      "generic": "Error al procesar.",
+      "noFile": "Elige un archivo.",
+      "tooLarge": "Archivo demasiado grande.",
+      "badType": "Sube un archivo .csv.",
+      "empty_or_no_rows": "Archivo vacío.",
+      "too_many_rows": "Demasiadas filas (máx. 5000).",
+      "missing_name_column": "Falta la columna 'nombre'.",
+      "not_found": "Importación no encontrada.",
+      "already_processed": "Ya procesada."
+    }
+  },
+  "campaigns": {
+    "title": "Campañas",
+    "subtitle": "Envíos segmentados de correo y WhatsApp.",
+    "new": "Nueva campaña",
+    "newTitle": "Nueva campaña",
+    "backToList": "Volver",
+    "empty": "Sin campañas.",
+    "name": "Nombre",
+    "channel": "Canal",
+    "ch": {
+      "EMAIL": "Correo",
+      "WHATSAPP": "WhatsApp",
+      "SMS": "SMS"
+    },
+    "audience": "Público",
+    "segment": "Segmento",
+    "service": "Servicio",
+    "barber": "Profesional",
+    "seg": {
+      "all": "Todos",
+      "active": "Activos",
+      "inactive": "Inactivos",
+      "new": "Nuevos",
+      "recurring": "Recurrentes",
+      "by_service": "Por servicio",
+      "by_employee": "Por profesional",
+      "opted_in": "Con opt-in"
+    },
+    "estimate": "Estimar alcance",
+    "estimateResult": "{n} destinatarios elegibles",
+    "subject": "Asunto",
+    "message": "Mensaje",
+    "varsHelp": "Variables",
+    "consentNote": "El envío respeta el consentimiento por canal de cada cliente. WhatsApp/SMS requieren opt-in; el correo respeta el opt-out.",
+    "createDraft": "Crear borrador",
+    "formError": "Revisa los campos.",
+    "launch": "Enviar",
+    "cancel": "Cancelar",
+    "status": {
+      "DRAFT": "Borrador",
+      "SCHEDULED": "Programada",
+      "RUNNING": "Enviando",
+      "COMPLETED": "Completada",
+      "CANCELED": "Cancelada",
+      "FAILED": "Falló"
+    },
+    "err": {
+      "NO_RECIPIENTS": "Sin destinatarios elegibles.",
+      "INVALID_STATE": "Estado inválido.",
+      "NOT_FOUND": "Campaña no encontrada."
     }
   }
 }

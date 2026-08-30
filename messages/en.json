@@ -41,7 +41,10 @@
     "settings": "Settings",
     "logout": "Sign out",
     "payments": "Payments",
-    "messages": "Messages"
+    "messages": "Messages",
+    "loyalty": "Loyalty",
+    "reviews": "Reviews",
+    "import": "Import"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -223,7 +226,14 @@
     "chatbotInstructions": "AI instructions",
     "chatbotInstructionsHint": "Tone of voice and shop notes. Does not change what the AI can do.",
     "chatbotHandoffKeywords": "Handoff keywords",
-    "chatbotHandoffKeywordsHint": "Comma-separated. A message containing one goes straight to a human."
+    "chatbotHandoffKeywordsHint": "Comma-separated. A message containing one goes straight to a human.",
+    "tabLoyalty": "Loyalty",
+    "loyaltyEnabled": "Enable the loyalty program",
+    "loyaltyEnabledHint": "Points are credited automatically when an appointment is completed.",
+    "pointsPerVisit": "Points per visit",
+    "pointsPerCurrencyCents": "Cents per extra point",
+    "pointsExpireDays": "Expiry (days, 0 = never)",
+    "pointsPerCurrencyHint": "e.g. 100 = 1 extra point per $1.00 spent. 0 disables the value bonus."
   },
   "publicPage": {
     "bookCta": "Book now",
@@ -833,7 +843,8 @@
       "APPOINTMENT_NOT_FOUND": "Booking not found.",
       "INVALID_TRANSITION": "This booking can no longer be changed.",
       "VALIDATION": "Couldn't complete with the details provided."
-    }
+    },
+    "leaveReview": "Leave a review"
   },
   "chatbot": {
     "launcher": "Chat with us",
@@ -884,6 +895,188 @@
       "agent": "Agent",
       "tool": "Tool",
       "system": "System"
+    }
+  },
+  "loyalty": {
+    "title": "Loyalty",
+    "subtitle": "Points, rewards and coupons.",
+    "disabled": "The program is disabled.",
+    "goToSettings": "Enable it in settings",
+    "activeSummary": "Program active · {visit} pts/visit · {value}",
+    "perValue": "+1 pt per {cents} cents",
+    "rewards": "Rewards",
+    "noRewards": "No rewards yet.",
+    "points": "points",
+    "disable": "Disable",
+    "enable": "Enable",
+    "newReward": "New reward",
+    "name": "Name",
+    "pointsCost": "Points cost",
+    "type": "Type",
+    "percentOff": "Percent off",
+    "amountOff": "Amount off",
+    "service": "Service",
+    "description": "Description",
+    "addReward": "Add reward",
+    "rewardCreated": "Reward created.",
+    "kind": {
+      "discount": "Discount",
+      "free_service": "Free service",
+      "custom": "Custom"
+    },
+    "customerPoints": "Customer points",
+    "searchCustomer": "Search a customer…",
+    "change": "Change",
+    "adjustPoints": "Adjust points",
+    "apply": "Apply",
+    "done": "Done.",
+    "redeem": "Redeem",
+    "redeemBtn": "Redeem",
+    "coupon": "Coupon",
+    "recent": "Recent activity",
+    "noActivity": "No activity.",
+    "err": {
+      "INSUFFICIENT_POINTS": "Not enough points."
+    },
+    "activity": {
+      "appointment_completed": "appointment completed",
+      "reward_redeemed": "reward redeemed",
+      "adjustment": "manual adjustment",
+      "manual": "manual"
+    },
+    "reason": "Reason"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "subtitle": "Moderate and track your reputation.",
+    "overall": "Overall average",
+    "perBarber": "Per barber",
+    "filter": {
+      "pending": "Pending",
+      "published": "Published",
+      "all": "All"
+    },
+    "empty": "No reviews.",
+    "published": "published",
+    "pending": "pending",
+    "hide": "Hide",
+    "approve": "Approve",
+    "prev": "Previous",
+    "next": "Next",
+    "rating": "Rating",
+    "commentPlaceholder": "Tell us how it went (optional)…",
+    "submit": "Submit review",
+    "thanks": "Thanks for your review!",
+    "publicTitle": "How was your visit to {shop}?",
+    "alreadyReviewed": "You already reviewed this visit ({rating}★).",
+    "notEligible": "This visit can't be reviewed yet.",
+    "err": {
+      "generic": "Couldn't submit.",
+      "NOT_ELIGIBLE": "Visit not completed.",
+      "ALREADY_REVIEWED": "You already reviewed this.",
+      "NOT_FOUND": "Not found.",
+      "rateLimited": "Too many attempts. Please wait."
+    }
+  },
+  "importContacts": {
+    "title": "Import customers",
+    "subtitle": "CSV with name + email/phone. No automatic opt-in.",
+    "uploadTitle": "Upload a file",
+    "uploadHint": "CSV format (export from Excel/Sheets). Max 2 MB, 5000 rows. Accepted columns: name, email, phone, whatsapp, notes, tags.",
+    "upload": "Upload & preview",
+    "total": "Total",
+    "valid": "Valid",
+    "duplicates": "Duplicates",
+    "errors": "Errors",
+    "name": "Name",
+    "contact": "Contact",
+    "status": "Status",
+    "rowStatus": {
+      "ok": "OK",
+      "duplicate": "Duplicate",
+      "error": "Error"
+    },
+    "rowErr": {
+      "name_required": "name required",
+      "bad_email": "invalid email",
+      "bad_phone": "invalid phone",
+      "no_contact": "no email/phone"
+    },
+    "truncatedPreview": "Showing 200 of {n} rows.",
+    "alsoImportDuplicates": "Also import duplicates",
+    "confirmImport": "Import {n} contacts",
+    "noOptInNote": "No marketing consent is set.",
+    "imported": "{n} imported · {skipped} skipped.",
+    "history": "History",
+    "state": {
+      "pending": "pending",
+      "previewed": "previewed",
+      "importing": "importing",
+      "completed": "completed",
+      "failed": "failed"
+    },
+    "err": {
+      "generic": "Failed to process.",
+      "noFile": "Choose a file.",
+      "tooLarge": "File too large.",
+      "badType": "Upload a .csv file.",
+      "empty_or_no_rows": "Empty file.",
+      "too_many_rows": "Too many rows (max 5000).",
+      "missing_name_column": "Missing a 'name' column.",
+      "not_found": "Import not found.",
+      "already_processed": "Already processed."
+    }
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "subtitle": "Segmented email and WhatsApp sends.",
+    "new": "New campaign",
+    "newTitle": "New campaign",
+    "backToList": "Back",
+    "empty": "No campaigns.",
+    "name": "Name",
+    "channel": "Channel",
+    "ch": {
+      "EMAIL": "Email",
+      "WHATSAPP": "WhatsApp",
+      "SMS": "SMS"
+    },
+    "audience": "Audience",
+    "segment": "Segment",
+    "service": "Service",
+    "barber": "Barber",
+    "seg": {
+      "all": "Everyone",
+      "active": "Active",
+      "inactive": "Inactive",
+      "new": "New",
+      "recurring": "Recurring",
+      "by_service": "By service",
+      "by_employee": "By barber",
+      "opted_in": "Opted in"
+    },
+    "estimate": "Estimate reach",
+    "estimateResult": "{n} eligible recipients",
+    "subject": "Subject",
+    "message": "Message",
+    "varsHelp": "Variables",
+    "consentNote": "Sending respects each customer's per-channel consent. WhatsApp/SMS require opt-in; email respects opt-out.",
+    "createDraft": "Create draft",
+    "formError": "Please review the fields.",
+    "launch": "Send",
+    "cancel": "Cancel",
+    "status": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "RUNNING": "Sending",
+      "COMPLETED": "Completed",
+      "CANCELED": "Canceled",
+      "FAILED": "Failed"
+    },
+    "err": {
+      "NO_RECIPIENTS": "No eligible recipients.",
+      "INVALID_STATE": "Invalid state.",
+      "NOT_FOUND": "Campaign not found."
     }
   }
 }

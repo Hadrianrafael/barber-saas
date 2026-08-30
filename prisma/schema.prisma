@@ -272,6 +272,8 @@ model Tenant {
   bookingConfig Json?
   // chatbot configuration (JSON — validated in app layer; see features/chatbot/config)
   chatbotConfig Json?
+  // loyalty program configuration (JSON — validated in app layer; see features/loyalty/config)
+  loyaltyConfig Json?
 
   trialEndsAt      DateTime?
   suspendedAt      DateTime?
@@ -299,6 +301,8 @@ model Tenant {
   notifications      Notification[]
   reviews            Review[]
   loyaltyAccounts    LoyaltyAccount[]
+  loyaltyRewards     LoyaltyReward[]
+  loyaltyTx          LoyaltyTransaction[]
   coupons            Coupon[]
   auditLogs          AuditLog[]
   contactImports     ContactImport[]
@@ -440,6 +444,7 @@ model Service {
   durationMin   Int
   bufferMin     Int           @default(0)
   status        ServiceStatus @default(ACTIVE)
+  loyaltyPoints Int? // per-service override for points earned on a completed visit
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -550,6 +555,7 @@ model Customer {
   conversations Conversation[]
   reviews      Review[]
   loyalty      LoyaltyAccount?
+  loyaltyTx    LoyaltyTransaction[]
   notifications Notification[]
 
   @@unique([tenantId, email])
@@ -984,6 +990,44 @@ model LoyaltyAccount {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+}
+
+model LoyaltyReward {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  description    String?
+  pointsCost     Int
+  kind           String   @default("discount") // discount | free_service | custom
+  amountOffCents Int?
+  percentOff     Int?
+  serviceId      String? // for kind = free_service
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isActive])
+}
+
+model LoyaltyTransaction {
+  id            String   @id @default(cuid())
+  tenantId      String
+  customerId    String
+  points        Int // positive = earned, negative = redeemed
+  reason        String // appointment_completed | reward_redeemed | manual | adjustment
+  appointmentId String?
+  rewardId      String?
+  note          String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([appointmentId, reason])
+  @@index([tenantId, customerId, createdAt])
 }
 
 model Coupon {

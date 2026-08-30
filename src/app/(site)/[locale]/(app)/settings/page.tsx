@@ -6,6 +6,7 @@ import { env } from "@/env";
 import { getTenantById, getBusinessHours, listHolidays } from "@/features/tenant/service";
 import { parseBookingConfig } from "@/features/tenant/booking-config";
 import { parseChatbotConfig } from "@/features/chatbot/config";
+import { parseLoyaltyConfig } from "@/features/loyalty/config";
 import { SettingsTabs } from "@/features/tenant/components/settings-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -91,6 +92,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           }))}
           bookingConfig={parseBookingConfig(tenant.bookingConfig)}
           chatbotConfig={parseChatbotConfig(tenant.chatbotConfig)}
+          loyaltyConfig={parseLoyaltyConfig(tenant.loyaltyConfig)}
         />
       </fieldset>
     </div>

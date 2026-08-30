@@ -19,10 +19,12 @@ import {
   removeHolidayAction,
   updateBookingConfigAction,
   updateChatbotConfigAction,
+  updateLoyaltyConfigAction,
   uploadImageAction,
   type SettingsState,
 } from "../actions";
 import type { ChatbotConfig } from "@/features/chatbot/config";
+import type { LoyaltyConfig } from "@/features/loyalty/config";
 
 const initial: SettingsState = { ok: false };
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -447,6 +449,48 @@ export function ChatbotPanel({ config }: { config: ChatbotConfig }) {
         <p className="mt-1 text-xs text-muted-foreground">{t("chatbotHandoffKeywordsHint")}</p>
       </div>
 
+      <SubmitButton>{t("save")}</SubmitButton>
+    </form>
+  );
+}
+
+export function LoyaltyConfigPanel({ config }: { config: LoyaltyConfig }) {
+  const t = useTranslations("settings");
+  const locale = useLocale();
+  const [state, action] = useActionState(updateLoyaltyConfigAction, initial);
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="locale" value={locale} />
+      <Saved state={state} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="enabled" defaultChecked={config.enabled} />
+        {t("loyaltyEnabled")}
+      </label>
+      <p className="text-xs text-muted-foreground">{t("loyaltyEnabledHint")}</p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <NumField
+          label={t("pointsPerVisit")}
+          name="pointsPerVisit"
+          defaultValue={config.pointsPerVisit}
+          min={0}
+          max={10000}
+        />
+        <NumField
+          label={t("pointsPerCurrencyCents")}
+          name="pointsPerCurrencyCents"
+          defaultValue={config.pointsPerCurrencyCents}
+          min={0}
+          max={1000000}
+        />
+        <NumField
+          label={t("pointsExpireDays")}
+          name="pointsExpireDays"
+          defaultValue={config.pointsExpireDays}
+          min={0}
+          max={3650}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">{t("pointsPerCurrencyHint")}</p>
       <SubmitButton>{t("save")}</SubmitButton>
     </form>
   );

@@ -60,7 +60,10 @@ export default async function BookingConfirmationPage({
                 label={t("price")}
                 value={formatMoney(booking.priceCents, booking.currency, booking.locale || locale)}
               />
-              <Row label={t("statusLabel")} value={t.has(statusKey) ? t(statusKey) : booking.status} />
+              <Row
+                label={t("statusLabel")}
+                value={t.has(statusKey) ? t(statusKey) : booking.status}
+              />
               <Row label={t("paymentLabel")} value={booking.paid ? t("paid") : t("payAtShop")} />
             </dl>
 
@@ -82,9 +85,18 @@ export default async function BookingConfirmationPage({
               </div>
             )}
 
+            {booking.status === "COMPLETED" && (
+              <Link
+                href={`/${locale}/barber/${slug}/review/${token}`}
+                className="inline-block rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                {t("leaveReview")}
+              </Link>
+            )}
+
             <Link
               href={`/${locale}/barber/${slug}`}
-              className="inline-block text-xs text-muted-foreground underline"
+              className="block text-xs text-muted-foreground underline"
             >
               {t("backToProfile")}
             </Link>

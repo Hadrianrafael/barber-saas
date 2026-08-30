@@ -14,11 +14,13 @@ import {
 } from "./schema";
 import { bookingConfigSchema } from "./booking-config";
 import { chatbotConfigSchema } from "@/features/chatbot/config";
+import { loyaltyConfigSchema } from "@/features/loyalty/config";
 import {
   updateTenantProfile,
   updateTenantRegional,
   updateBookingConfig,
   updateChatbotConfig,
+  updateLoyaltyConfig,
   replaceBusinessHours,
   addHoliday,
   removeHoliday,
@@ -162,6 +164,24 @@ export async function updateChatbotConfigAction(
   });
   if (!parsed.success) return zerr(parsed.error);
   await updateChatbotConfig(ctx.tenantId, parsed.data, await actorFrom(ctx));
+  revalidate(String(raw.locale ?? "pt-BR"));
+  return OK;
+}
+
+export async function updateLoyaltyConfigAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const ctx = await requireTenantContext({ permission: "tenant.settings.write" });
+  const raw = Object.fromEntries(formData);
+  const parsed = loyaltyConfigSchema.safeParse({
+    enabled: raw.enabled === "on" || raw.enabled === "true",
+    pointsPerVisit: Number(raw.pointsPerVisit),
+    pointsPerCurrencyCents: Number(raw.pointsPerCurrencyCents),
+    pointsExpireDays: Number(raw.pointsExpireDays),
+  });
+  if (!parsed.success) return zerr(parsed.error);
+  await updateLoyaltyConfig(ctx.tenantId, parsed.data, await actorFrom(ctx));
   revalidate(String(raw.locale ?? "pt-BR"));
   return OK;
 }
