@@ -671,5 +671,52 @@
     "successBody": "Thank you! Your payment was processed securely by Stripe.",
     "canceledTitle": "Payment canceled",
     "canceledBody": "You weren't charged. You can try again from the link."
+  },
+  "finance": {
+    "title": "Finance",
+    "exportCsv": "Export CSV",
+    "apply": "Apply",
+    "billed": "Billed",
+    "received": "Received",
+    "pending": "Pending",
+    "refunded": "Refunded",
+    "avgTicket": "Avg. ticket",
+    "appointments": "Appointments",
+    "platformFees": "Platform fees",
+    "commissions": "Commissions",
+    "last6": "Last 6 months",
+    "commissionsByBarber": "Commissions by barber",
+    "barber": "Barber",
+    "apptsCol": "Appts",
+    "baseCol": "Base",
+    "commissionCol": "Commission",
+    "paymentsLog": "Payment log",
+    "noData": "No data for this period.",
+    "noPayments": "No payments in this period.",
+    "dateCol": "Date",
+    "customerCol": "Client",
+    "amountCol": "Amount",
+    "feeCol": "Fee",
+    "statusCol": "Status",
+    "countLabel": "{total} payment(s)",
+    "prev": "Previous",
+    "next": "Next",
+    "preset": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "Month",
+      "quarter": "Quarter",
+      "year": "Year",
+      "custom": "Custom"
+    },
+    "pst": {
+      "REQUIRES_PAYMENT": "Awaiting",
+      "PROCESSING": "Processing",
+      "SUCCEEDED": "Paid",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded",
+      "PARTIALLY_REFUNDED": "Partially refunded",
+      "CANCELED": "Canceled"
+    }
   }
 }

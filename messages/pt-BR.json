@@ -671,5 +671,52 @@
     "successBody": "Obrigado! O pagamento foi processado com segurança pela Stripe.",
     "canceledTitle": "Pagamento cancelado",
     "canceledBody": "Nenhum valor foi cobrado. Você pode tentar novamente pelo link."
+  },
+  "finance": {
+    "title": "Financeiro",
+    "exportCsv": "Exportar CSV",
+    "apply": "Aplicar",
+    "billed": "Faturamento",
+    "received": "Recebido",
+    "pending": "Pendente",
+    "refunded": "Reembolsado",
+    "avgTicket": "Ticket médio",
+    "appointments": "Atendimentos",
+    "platformFees": "Taxas da plataforma",
+    "commissions": "Comissões",
+    "last6": "Últimos 6 meses",
+    "commissionsByBarber": "Comissões por barbeiro",
+    "barber": "Barbeiro",
+    "apptsCol": "Atend.",
+    "baseCol": "Base",
+    "commissionCol": "Comissão",
+    "paymentsLog": "Histórico de pagamentos",
+    "noData": "Sem dados no período.",
+    "noPayments": "Nenhum pagamento no período.",
+    "dateCol": "Data",
+    "customerCol": "Cliente",
+    "amountCol": "Valor",
+    "feeCol": "Taxa",
+    "statusCol": "Status",
+    "countLabel": "{total} pagamento(s)",
+    "prev": "Anterior",
+    "next": "Próximo",
+    "preset": {
+      "today": "Hoje",
+      "week": "7 dias",
+      "month": "Mês",
+      "quarter": "Trimestre",
+      "year": "Ano",
+      "custom": "Personalizado"
+    },
+    "pst": {
+      "REQUIRES_PAYMENT": "Aguardando",
+      "PROCESSING": "Processando",
+      "SUCCEEDED": "Pago",
+      "FAILED": "Falhou",
+      "REFUNDED": "Reembolsado",
+      "PARTIALLY_REFUNDED": "Reembolso parcial",
+      "CANCELED": "Cancelado"
+    }
   }
 }
