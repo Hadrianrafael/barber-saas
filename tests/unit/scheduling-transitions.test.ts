@@ -7,12 +7,12 @@ import {
 } from "@/features/scheduling/constants";
 
 describe("appointment status transitions", () => {
-  it("PENDING can be confirmed, started, canceled or marked no-show", () => {
+  it("PENDING can be confirmed, started, completed (walk-in), canceled or no-show", () => {
     expect(canTransition("PENDING", "CONFIRMED")).toBe(true);
     expect(canTransition("PENDING", "IN_PROGRESS")).toBe(true);
+    expect(canTransition("PENDING", "COMPLETED")).toBe(true);
     expect(canTransition("PENDING", "CANCELED")).toBe(true);
     expect(canTransition("PENDING", "NO_SHOW")).toBe(true);
-    expect(canTransition("PENDING", "COMPLETED")).toBe(false);
   });
 
   it("CONFIRMED progresses to in-progress or completed", () => {

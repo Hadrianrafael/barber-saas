@@ -59,7 +59,7 @@ const schema = z.object({
   CHATBOT_MODEL: z.string().default("claude-sonnet-5"),
 
   SENTRY_DSN: z.string().optional().default(""),
-  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });
 
 const parsed = schema.safeParse(process.env);

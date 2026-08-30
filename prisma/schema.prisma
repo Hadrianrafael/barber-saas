@@ -415,12 +415,13 @@ model Employee {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  services     ServiceEmployee[]
-  appointments Appointment[]
-  workHours    BusinessHour[]
-  blockedTimes BlockedTime[]
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user               User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services           ServiceEmployee[]
+  appointments       Appointment[]
+  workHours          BusinessHour[]
+  blockedTimes       BlockedTime[]
+  preferredByCustomers Customer[]      @relation("PreferredEmployee")
 
   @@unique([tenantId, userId])
   @@index([tenantId, status])
@@ -524,17 +525,20 @@ model Customer {
   photoUrl        String?
   birthDate       DateTime?      @db.Date
   notes           String?
+  tags            String[]       @default([])
   preferredEmployeeId String?
   status          CustomerStatus @default(ACTIVE)
   lastVisitAt     DateTime?
   totalSpentCents Int            @default(0)
   visitsCount     Int            @default(0)
   source          AppointmentSource @default(DASHBOARD)
+  anonymizedAt    DateTime? // GDPR erase — PII cleared, appointment history kept
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  preferredEmployee Employee?  @relation("PreferredEmployee", fields: [preferredEmployeeId], references: [id], onDelete: SetNull)
   appointments Appointment[]
   consents     CommunicationConsent[]
   payments     Payment[]
@@ -549,6 +553,8 @@ model Customer {
   @@unique([tenantId, phone])
   @@index([tenantId, status])
   @@index([tenantId, lastVisitAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, preferredEmployeeId])
 }
 
 model CommunicationConsent {

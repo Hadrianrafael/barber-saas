@@ -1,14 +1,8 @@
 import { z } from "zod";
 import { SUPPORTED_CURRENCIES } from "@/lib/regions";
+import { optionalPhone } from "@/lib/validation";
 
-const phone = z
-  .string()
-  .trim()
-  .max(24)
-  .refine((v) => v === "" || /^\+?[0-9][0-9\s().-]{6,20}$/.test(v), { message: "invalidPhone" })
-  .transform((v) => v.replace(/[^\d+]/g, ""))
-  .optional()
-  .or(z.literal(""));
+const phone = optionalPhone;
 
 const specialties = z
   .string()

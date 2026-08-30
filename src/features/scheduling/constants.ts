@@ -10,7 +10,9 @@ export const SLOT_HOLDING_STATUSES: AppointmentStatus[] = [
 
 /** Allowed status transitions (mirrors the DB overlap constraint's WHERE list). */
 export const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  PENDING: ["CONFIRMED", "IN_PROGRESS", "CANCELED", "NO_SHOW"],
+  // COMPLETED is reachable directly from PENDING for walk-ins (cut → pay → done
+  // without clicking through confirm/start).
+  PENDING: ["CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELED", "NO_SHOW"],
   CONFIRMED: ["IN_PROGRESS", "COMPLETED", "CANCELED", "NO_SHOW"],
   IN_PROGRESS: ["COMPLETED", "CANCELED"],
   COMPLETED: [],

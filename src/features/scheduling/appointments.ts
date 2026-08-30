@@ -323,6 +323,12 @@ export async function rescheduleAppointment(input: RescheduleInput) {
   return updated;
 }
 
+function isRetryableTxError(e: unknown): boolean {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034") return true;
+  const msg = e instanceof Error ? e.message : String(e);
+  return /deadlock|write conflict|could not serialize/i.test(msg);
+}
+
 async function transition(
   tenantId: string,
   appointmentId: string,
@@ -330,30 +336,67 @@ async function transition(
   actor: Actor,
   extra: Partial<Record<"cancelReason", string>> = {},
 ) {
-  const updated = await prisma.$transaction(async (tx) => {
-    const current = await tx.appointment.findFirst({
-      where: { id: appointmentId, tenantId },
-      select: { id: true, status: true },
-    });
-    if (!current) throw new SchedulingError("APPOINTMENT_NOT_FOUND");
-    if (!canTransition(current.status, to))
-      throw new SchedulingError("INVALID_TRANSITION", `${current.status} -> ${to}`);
-
-    const stamp: Record<string, unknown> = {};
-    if (to === "CONFIRMED") stamp.confirmedAt = new Date();
-    if (to === "IN_PROGRESS") stamp.startedAt = new Date();
-    if (to === "COMPLETED") stamp.completedAt = new Date();
-    if (to === "NO_SHOW") stamp.noShowAt = new Date();
-    if (to === "CANCELED") {
-      stamp.canceledAt = new Date();
-      stamp.cancelReason = extra.cancelReason ?? null;
+  let updated: Awaited<ReturnType<typeof runTransition>> | undefined;
+  for (let attempt = 0; attempt < SERIALIZATION_RETRIES; attempt++) {
+    try {
+      updated = await runTransition();
+      break;
+    } catch (e) {
+      if (isRetryableTxError(e) && attempt < SERIALIZATION_RETRIES - 1) continue;
+      throw e;
     }
-
-    return tx.appointment.update({ where: { id: current.id }, data: { status: to, ...stamp } });
-  });
+  }
+  if (!updated) throw new SchedulingError("VALIDATION", "transition failed");
 
   await audit(tenantId, actor, `appointment.${to.toLowerCase()}`, updated.id);
   return updated;
+
+  async function runTransition() {
+    return prisma.$transaction(async (tx) => {
+      const current = await tx.appointment.findFirst({
+        where: { id: appointmentId, tenantId },
+        select: {
+          id: true,
+          status: true,
+          customerId: true,
+          priceCents: true,
+          startsAt: true,
+        },
+      });
+      if (!current) throw new SchedulingError("APPOINTMENT_NOT_FOUND");
+      if (!canTransition(current.status, to))
+        throw new SchedulingError("INVALID_TRANSITION", `${current.status} -> ${to}`);
+
+      const stamp: Record<string, unknown> = {};
+      if (to === "CONFIRMED") stamp.confirmedAt = new Date();
+      if (to === "IN_PROGRESS") stamp.startedAt = new Date();
+      if (to === "COMPLETED") stamp.completedAt = new Date();
+      if (to === "NO_SHOW") stamp.noShowAt = new Date();
+      if (to === "CANCELED") {
+        stamp.canceledAt = new Date();
+        stamp.cancelReason = extra.cancelReason ?? null;
+      }
+
+      const row = await tx.appointment.update({
+        where: { id: current.id },
+        data: { status: to, ...stamp },
+      });
+
+      // Completing a visit rolls up the customer's CRM stats.
+      if (to === "COMPLETED") {
+        await tx.customer.update({
+          where: { id: current.customerId },
+          data: {
+            visitsCount: { increment: 1 },
+            totalSpentCents: { increment: current.priceCents },
+            lastVisitAt: current.startsAt,
+          },
+        });
+      }
+
+      return row;
+    });
+  }
 }
 
 export const confirmAppointment = (tenantId: string, id: string, actor: Actor) =>

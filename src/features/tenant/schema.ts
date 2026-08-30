@@ -6,21 +6,13 @@ import {
   isValidTimezone,
 } from "@/lib/regions";
 import { SLUG_MAX, SLUG_MIN } from "./slug";
+import { optionalPhone } from "@/lib/validation";
 
 const localeEnum = z.enum(SUPPORTED_LOCALES);
 const countryEnum = z.enum(COUNTRY_CODES as [string, ...string[]]);
 const currencyEnum = z.enum(SUPPORTED_CURRENCIES as [string, ...string[]]);
 const timezone = z.string().refine(isValidTimezone, { message: "invalidTimezone" });
 
-/** Loose E.164-ish: optional +, 8–15 digits, spaces/dashes/parens tolerated on input. */
-const phone = z
-  .string()
-  .trim()
-  .max(24)
-  .refine((v) => v === "" || /^\+?[0-9][0-9\s().-]{6,20}$/.test(v), { message: "invalidPhone" })
-  .transform((v) => v.replace(/[^\d+]/g, ""));
-
-const optionalPhone = phone.optional().or(z.literal(""));
 const optionalUrl = z
   .string()
   .trim()

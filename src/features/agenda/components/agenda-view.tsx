@@ -322,7 +322,9 @@ function Actions({ appt, onReschedule }: { appt: Appt; onReschedule: (a: Appt) =
           <SubmitBtn label={t("start")} />
         </form>
       )}
-      {(appt.status === "CONFIRMED" || appt.status === "IN_PROGRESS") && (
+      {(appt.status === "PENDING" ||
+        appt.status === "CONFIRMED" ||
+        appt.status === "IN_PROGRESS") && (
         <form action={completeAppointmentAction}>
           <Hidden />
           <SubmitBtn label={t("complete")} />
