@@ -21,13 +21,25 @@ Always-on controls (not optional, not behind a flag):
 ## AuthZ
 - RBAC decided on the server for every mutation via `requireTenantContext`.
 - Never trust client-supplied `tenantId` / role / JWT claims for permission.
-- Tenant isolation enforced by `forTenant()` on all tenant-scoped queries.
+- Tenant isolation enforced by `forTenant()` on all tenant-scoped queries, and —
+  where a service takes a raw `prisma` client + an explicit `tenantId` — by
+  `where: { id, tenantId }` / `updateMany({ id, tenantId })` guards. A row id
+  from another tenant returns null / throws `NotFoundError` and never mutates.
+  Any service that accepts a related id (e.g. a `customerId` for a loyalty
+  points adjustment) re-checks that it belongs to the tenant server-side — the
+  UI only surfacing same-tenant rows is not treated as the authority.
+- `tests/integration/tenant-isolation.int.test.ts` is an explicit cross-tenant
+  matrix (customers, employees, services, appointments, payments, payment links,
+  campaigns, reviews, loyalty, conversations, imports).
 
 ## Input / output
 - All external input validated with zod at the boundary (server actions, route
   handlers, webhooks).
 - Prisma parameterizes queries; no string-built SQL. Raw SQL (rare) carries
   explicit tenant predicates.
+- CSV exports (finance ledger) quote every cell and neutralise spreadsheet
+  formula injection — a value starting with `= + - @` or a control char is
+  prefixed with `'`.
 - Security headers set in `next.config.ts`: `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`,
   `Permissions-Policy`, a baseline `Content-Security-Policy`
@@ -96,9 +108,18 @@ Always-on controls (not optional, not behind a flag):
 
 ## Known follow-ups (tracked, not blockers)
 - Nonce-based CSP (drop `script-src 'unsafe-inline'`).
-- Full Playwright E2E of the 5 critical flows (server-side paths are covered by
-  the DB-backed integration suite; the dev server does not compile fast enough
-  in the current Windows/Node dev box for browser E2E — CI runs the smoke spec).
-- Automated cross-tenant isolation test sweep (spot-covered today by the
-  scheduling / CRM / chatbot integration tests, which assert tenant scoping).
+- Full Playwright **browser** E2E of the 5 critical flows. The server-side path
+  of the golden flow is covered by `tests/integration/golden-path.int.test.ts`
+  (owner → config → public booking → Connect payment webhook → chatbot booking)
+  and CI runs `tests/e2e/smoke.spec.ts`; a full browser E2E needs a hosted
+  environment (the local dev server compile time makes it impractical here).
 - `dev-cybersecurity` deep review (OWASP Top 10) sign-off.
+- Infra hardening before prod: VNet for Postgres/Redis, private endpoints for
+  Storage/Key Vault, Front Door/WAF (see `infra/README.md`).
+
+## Fixed during launch prep (2026-09)
+- **Cross-tenant write via loyalty** — `adjustPoints` / `redeemReward` /
+  `getLoyaltySummary` did not verify the `customerId` belonged to the tenant.
+  Fixed with an `assertCustomerInTenant()` guard. Covered by the isolation
+  matrix.
+- **CSV formula injection** in the finance export — mitigated (see above).

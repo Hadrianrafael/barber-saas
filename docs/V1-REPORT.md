@@ -1,14 +1,16 @@
 # V1 Comercial — Relatório consolidado
 
-**Estado:** `READY FOR CONFIGURATION` — todo o código está implementado, testado
-e com build de produção verde. Falta apenas fornecer as credenciais das
-integrações externas (Stripe, Stripe Connect, WhatsApp, Anthropic, Resend, Azure
-Blob) e executar o deploy. Nenhuma integração é simulada: sem chave, a
+**Estado:** `READY FOR CONFIGURATION` — todo o código está implementado, testado,
+auditado para lançamento e com build de produção verde. Falta apenas: criar as
+contas externas, colocar as credenciais no Azure Key Vault, apontar os domínios,
+fazer o deploy e rodar o checklist. Nenhuma integração é simulada: sem chave, a
 funcionalidade degrada de forma limpa (e-mail vai para o console, pagamentos
 ficam desabilitados, o chat cai na fila humana), nunca finge sucesso.
 
-Data: 2026-09-06 · Branch: `main` · 12 commits · 12 migrations · 12 ADRs ·
-166 testes verdes.
+**Runbook de lançamento passo a passo:** [docs/GO-LIVE.md](GO-LIVE.md).
+
+Branch: `main` · 15 migrations · 13 ADRs · **186 testes verdes** (`tsc` + `lint`
++ `next build` limpos).
 
 ---
 
@@ -122,21 +124,29 @@ Variáveis **obrigatórias** (sem elas o processo não sobe): `DATABASE_URL`,
 
 ## 5. Azure — produção
 
-IaC em `infra/main.bicep` (Log Analytics, ACR, Postgres Flexible Server, Redis,
-Storage+Blob, Key Vault + managed identity, Container Apps env, app **web**, app
-**worker**, job **reminders**). Ambientes `dev` / `staging` / `prod` pelo mesmo
-template parametrizado por `environment`. Passo a passo em
-[docs/deployment/azure.md](deployment/azure.md).
+IaC completo em `infra/main.bicep` — um template por ambiente
+(`dev`/`staging`/`prod`), nomes `barber-<env>-<role>`:
 
-Comandos (web = `npm run start`; worker = `npm run worker:start`; jobs =
-`npm run cron:reminders` / `npm run cron:retry-messages`). Adicionar os jobs
-`retry-messages` (o template hoje cria só `reminders`) — comando no doc.
+- Log Analytics · ACR · **Postgres Flexible Server 16** (prod: 64 GB, backup 21d
+  geo-redundante, HA ZoneRedundant) · **Azure Cache for Redis** · **Storage +
+  container `uploads`** · **Key Vault** (prod: purge protection) · Container Apps
+  env.
+- **Uma imagem, três papéis**: `barber-<env>-web` (CMD default `node server.js`),
+  `barber-<env>-worker` (`npx tsx src/worker/index.ts`),
+  `barber-<env>-cron-reminders` (`*/15`), `barber-<env>-cron-retry-messages`
+  (`*/5`), `barber-<env>-migrate` (manual, `npx prisma migrate deploy` dentro do
+  CAE). Dockerfile refeito como um único stage `runner`.
+- **Todos os slots de secret declarados** (placeholder vazio) + env wiring:
+  `STRIPE_*`, `RESEND_*`, `WHATSAPP_*`, `ANTHROPIC_API_KEY`, storage, `SENTRY_DSN`,
+  `PLATFORM_FEE_BPS`, `STRIPE_TAX_ENABLED`, `EMAIL_FROM`, `CHATBOT_MODEL`. Ativar
+  = por os valores no Key Vault + trocar `value: ''` por `keyVaultUrl`.
+  `database-url` / `redis-url` / `storage-connection-string` são derivados dos
+  recursos provisionados (reais desde o 1º deploy).
+- **Probes**: liveness + startup → `/api/health/live` (sem dependências),
+  readiness → `/api/health` (Postgres obrigatório; Redis degrada mas segue).
 
-**Probes**: liveness `GET /api/health/live` (sem dependências), readiness
-`GET /api/health` (Postgres obrigatório; Redis degrada mas segue pronto).
-
-**Segredos**: Key Vault, referenciados pelos Container Apps como `secretRef`.
-Nunca no Git, nunca na imagem. `.gitignore` cobre `.env*`, `*.pem`, `*.key`.
+Passo a passo: [docs/deployment/azure.md](deployment/azure.md) e
+[docs/GO-LIVE.md](GO-LIVE.md). `.gitignore` cobre `.env*`, `*.pem`, `*.key`.
 
 ---
 
@@ -146,25 +156,36 @@ Nunca no Git, nunca na imagem. `.gitignore` cobre `.env*`, `*.pem`, `*.key`.
   `prisma generate` → `prisma migrate deploy` → `typecheck` → `lint` → `test`
   (unit + integração com Postgres/Redis de serviço, `RUN_DB_TESTS=1`) →
   `build` → Playwright smoke.
-- **`.github/workflows/deploy.yml`** (novo): `az acr build` →
-  `prisma migrate deploy` (forward-only, uma vez, antes de qualquer app subir) →
-  `az containerapp update --image` para web / worker / jobs → smoke de readiness
-  contra `/api/health`. **Staging** deploya automático no `main` verde;
-  **produção** é `workflow_dispatch` com o GitHub Environment `production`
-  (revisores obrigatórios). Login Azure via OIDC federado. **Nenhum passo
-  destrutivo** — rollback = redeploy de um SHA anterior.
+- **`.github/workflows/deploy.yml`**: `az acr build` (uma imagem) → inicia o job
+  `barber-<env>-migrate` e aguarda `Succeeded`/`Failed` → `az containerapp
+  update --image` para web / worker / os dois crons → smoke de readiness contra
+  `/api/health`. Mapeia `staging|production` (nome do GitHub Environment) para
+  `staging|prod` (nome curto do Bicep). **Staging** automático no `main` verde;
+  **produção** `workflow_dispatch` com o Environment `production` (revisores
+  obrigatórios). Login Azure via OIDC federado. **Nenhum passo destrutivo** —
+  rollback = redeploy de um SHA anterior ou `az containerapp revision
+  set-active`.
 
-Secrets do GitHub necessários: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
-`AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `DATABASE_URL`,
-`DIRECT_DATABASE_URL`, `APP_HEALTH_URL`.
+Secrets do GitHub: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
+`AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `ACR_NAME`, `APP_HEALTH_URL`.
 
 ---
 
 ## 7. Testes
 
-- **166 testes verdes**, 29 arquivos. `vitest`, `fileParallelism: false`
+- **186 testes verdes**, 32 arquivos. `vitest`, `fileParallelism: false`
   (banco `barber_test` compartilhado). Integração roda contra Postgres real
   quando `RUN_DB_TESTS=1` (CI define).
+- **`tenant-isolation.int.test.ts`** — matriz explícita cross-tenant: tenant B
+  não lê nem altera linha do tenant A (clientes, funcionários, serviços,
+  agendamentos, pagamentos, links, campanhas, avaliações, fidelidade, conversas,
+  importações) mesmo passando o id de A direto.
+- **`golden-path.int.test.ts`** — fluxo principal ponta a ponta na camada de
+  serviço: barbearia em trial (não bloqueada) → cria barbeiro/serviço/horários →
+  agendamento público "qualquer barbeiro" (PENDING) → webhook Connect
+  `checkout.session.completed` (CONFIRMED + `Payment` + página do token mostra
+  pago) → chatbot agenda um 2º horário com tools reais (preço real, não
+  inventado) → double-booking recusado.
 - **Unitários**: RBAC, tempo/slots/transições de agendamento, schemas
   (team/service/crm/booking/loyalty), segmentos CRM, comissão, plano/limites,
   regiões, slug, senha, templates de mensagem, config do chatbot + detecção de
@@ -195,8 +216,13 @@ e está ativo:
 
 - **AuthZ**: RBAC no servidor em toda mutação; nunca confia em `tenantId`/role/
   claim do cliente; `forTenant()` em toda query de tenant.
-- **Isolamento cross-tenant**: testado nas suítes de agendamento/CRM/chatbot com
-  um segundo tenant presente.
+- **Isolamento cross-tenant**: matriz explícita em
+  `tests/integration/tenant-isolation.int.test.ts` (11 domínios). **Corrigido na
+  auditoria de lançamento**: `adjustPoints`/`redeemReward`/`getLoyaltySummary` da
+  fidelidade não validavam que o `customerId` era do tenant — agora
+  `assertCustomerInTenant()`.
+- **CSV**: exportação financeira neutraliza injeção de fórmula (célula iniciando
+  em `= + - @` ou controle recebe prefixo `'`).
 - **Webhooks**: assinatura verificada antes de processar (Stripe
   `constructEvent`; WhatsApp HMAC-SHA256 `timingSafeEqual`); idempotência por
   `WebhookEvent` + guardas de estado; estado escrito só por webhook, nunca por
@@ -255,9 +281,16 @@ automatizado de isolamento cross-tenant; revisão profunda OWASP Top 10.
 | Número de WhatsApp por tenant (hoje 1 número da plataforma) | ADR 0008 |
 | WhatsApp inbound alimentando o agente do chatbot | ADR 0010 |
 | CSP com nonce | ADR 0012 / SECURITY.md |
-| E2E Playwright dos 5 fluxos | ADR 0012 / SECURITY.md |
+| E2E de **browser** Playwright dos 5 fluxos (golden path já coberto na camada de serviço) | ADR 0012 / SECURITY.md |
 | Relação `Review.employee` no schema | ADR 0011 / database.md |
-| Adicionar job `retry-messages` ao Bicep | azure.md |
+| Hardening de rede Azure (VNet PG/Redis, private endpoints, Front Door/WAF) | infra/README.md / azure.md |
+
+**Resolvido nesta auditoria de lançamento:** job `cron-retry-messages` +
+`-migrate` adicionados ao Bicep; nomes de recurso consistentes entre Bicep e
+`deploy.yml`; Dockerfile de imagem única (web + worker + jobs); todos os slots de
+secret declarados no Bicep; probes liveness/readiness/startup separados;
+vazamento cross-tenant da fidelidade corrigido; injeção de fórmula em CSV
+mitigada.
 
 ---
 
@@ -283,22 +316,25 @@ automatizado de isolamento cross-tenant; revisão profunda OWASP Top 10.
 
 ## 12. Comandos de deploy
 
+O passo a passo completo (contas, Stripe, Connect, Resend, WhatsApp, IA, Azure,
+Key Vault, domínio, webhooks, staging, testes, produção, Live Mode, checklist)
+está em **[docs/GO-LIVE.md](GO-LIVE.md)**. Resumo:
+
 ```bash
 # 1. Provisionar (por ambiente)
-az group create -n barber-prod -l brazilsouth
-az deployment group create -g barber-prod -f infra/main.bicep \
-  -p namePrefix=barber environment=prod pgAdminLogin=barberadmin \
-     pgAdminPassword='<gerar>' appUrl=https://app.exemplo.com \
-     webImage=<acr>.azurecr.io/barber-saas:bootstrap \
-     workerImage=<acr>.azurecr.io/barber-saas:bootstrap
+az group create -n barber-staging -l brazilsouth
+az acr build -r <acr> -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .
+az deployment group create -g barber-staging -f infra/main.bicep \
+  -p namePrefix=barber environment=staging \
+     image=<acr>.azurecr.io/barber-saas:<tag> \
+     pgAdminLogin=barberadmin pgAdminPassword='<gerar>' \
+     appUrl=https://staging.<dominio>
 
-# 2. Popular Key Vault (todos os secrets da seção 11)
-az keyvault secret set --vault-name <kv> --name DATABASE-URL --value '...'
-# ...
-
-# 3. Migrations + seed (uma vez)
-DATABASE_URL=... DIRECT_DATABASE_URL=... npx prisma migrate deploy
-SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... npx tsx prisma/seed.ts
+# 2. Key Vault: por os valores + trocar secrets[] por keyVaultUrl (GO-LIVE §8)
+# 3. Migrations + seed + Stripe:
+az containerapp job start -g barber-staging -n barber-staging-migrate
+SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... npm run db:seed
+STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans
 
 # 4. Deploy contínuo: push no main → staging automático;
 #    produção → GitHub Actions → workflow "Deploy" → environment=production
@@ -324,5 +360,7 @@ SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... npx tsx prisma/seed.ts
 | `a6b257b` | Production hardening — observabilidade, headers, CI/CD deploy, docs |
 
 | `4bfa2a2` | Stripe — finalização (Products/Prices como dados + `stripe:sync-plans`, upgrade/downgrade in-place, verificação de `event.account` no Connect, `subscription.resumed` + `charge.refunded` no SaaS, Stripe Tax opt-in, idempotency keys, logs financeiros estruturados). ADR 0013, `docs/STRIPE.md` |
+| `beea4ae` | docs: hash da finalização Stripe no relatório |
+| `53183ec` | **Preparação de lançamento** — correção de vazamento cross-tenant na fidelidade; injeção de fórmula CSV mitigada; Bicep/Dockerfile/deploy.yml consistentes (imagem única, nomes `barber-<env>-*`, jobs `cron-retry-messages` + `-migrate`, probes separados, todos os secrets declarados); `tenant-isolation` + `golden-path` E2E. |
 
-ADRs: `docs/adr/0001`–`0013`.
+ADRs: `docs/adr/0001`–`0013`. Runbook: `docs/GO-LIVE.md`.
