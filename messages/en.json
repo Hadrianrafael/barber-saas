@@ -39,7 +39,8 @@
     "conversations": "Conversations",
     "billing": "Billing",
     "settings": "Settings",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "payments": "Payments"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -599,5 +600,76 @@
     "email": "Enter a valid email.",
     "min": "Minimum {count} characters.",
     "max": "Maximum {count} characters."
+  },
+  "payments": {
+    "title": "Payments",
+    "subtitle": "Payments from your clients via Stripe Connect. Separate flow from the platform subscription.",
+    "notConfigured": "Stripe Connect isn't active in this deployment yet. Set the keys (see docs/deployment/stripe-connect.md).",
+    "connectTitle": "Payout account",
+    "accountStatus": "Account status",
+    "chargesEnabled": "Can accept payments",
+    "payoutsEnabled": "Can receive payouts",
+    "yes": "Yes",
+    "no": "No",
+    "connect": "Connect Stripe account",
+    "continueOnboarding": "Continue onboarding",
+    "refreshStatus": "Refresh status",
+    "links": "Payment links",
+    "createLink": "Create link",
+    "needAccount": "Finish account onboarding to create links.",
+    "noLinks": "No links yet.",
+    "open": "open",
+    "cancel": "cancel",
+    "linkReady": "Link ready",
+    "description": "Description",
+    "amount": "Amount",
+    "currency": "Currency",
+    "generate": "Generate link",
+    "close": "Close",
+    "received": "Payments received",
+    "noPayments": "No payments yet.",
+    "fee": "Platform fee",
+    "net": "Net",
+    "refunded": "Refunded",
+    "refund": "refund",
+    "refundAmount": "Refund amount (blank = full)",
+    "confirmRefund": "Confirm",
+    "st": {
+      "NOT_CONNECTED": "Not connected",
+      "ONBOARDING": "Onboarding",
+      "PENDING_VERIFICATION": "Verification pending",
+      "ENABLED": "Active",
+      "RESTRICTED": "Restricted",
+      "DISABLED": "Disabled"
+    },
+    "lst": {
+      "ACTIVE": "Active",
+      "PAID": "Paid",
+      "EXPIRED": "Expired",
+      "CANCELED": "Canceled"
+    },
+    "pst": {
+      "REQUIRES_PAYMENT": "Awaiting",
+      "PROCESSING": "Processing",
+      "SUCCEEDED": "Paid",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded",
+      "PARTIALLY_REFUNDED": "Partially refunded",
+      "CANCELED": "Canceled"
+    },
+    "err": {
+      "generic": "Could not complete.",
+      "notConfigured": "Stripe Connect not configured.",
+      "connectNotReady": "Finish your payout account onboarding.",
+      "notFound": "Record not found.",
+      "invalid": "Invalid data.",
+      "notRefundable": "This payment can't be refunded."
+    }
+  },
+  "payResult": {
+    "successTitle": "Payment confirmed",
+    "successBody": "Thank you! Your payment was processed securely by Stripe.",
+    "canceledTitle": "Payment canceled",
+    "canceledBody": "You weren't charged. You can try again from the link."
   }
 }

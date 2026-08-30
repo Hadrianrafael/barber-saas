@@ -39,7 +39,8 @@
     "conversations": "Conversaciones",
     "billing": "Facturación",
     "settings": "Configuración",
-    "logout": "Salir"
+    "logout": "Salir",
+    "payments": "Pagos"
   },
   "auth": {
     "signInTitle": "Iniciar sesión",
@@ -599,5 +600,76 @@
     "email": "Introduce un correo válido.",
     "min": "Mínimo {count} caracteres.",
     "max": "Máximo {count} caracteres."
+  },
+  "payments": {
+    "title": "Pagos",
+    "subtitle": "Pagos de tus clientes mediante Stripe Connect. Flujo separado de la suscripción de la plataforma.",
+    "notConfigured": "Stripe Connect aún no está activo en esta instalación. Configura las claves (ver docs/deployment/stripe-connect.md).",
+    "connectTitle": "Cuenta de cobro",
+    "accountStatus": "Estado de la cuenta",
+    "chargesEnabled": "Puede aceptar pagos",
+    "payoutsEnabled": "Puede recibir transferencias",
+    "yes": "Sí",
+    "no": "No",
+    "connect": "Conectar cuenta de Stripe",
+    "continueOnboarding": "Continuar registro",
+    "refreshStatus": "Actualizar estado",
+    "links": "Enlaces de pago",
+    "createLink": "Crear enlace",
+    "needAccount": "Completa el registro de la cuenta para crear enlaces.",
+    "noLinks": "Aún no hay enlaces.",
+    "open": "abrir",
+    "cancel": "cancelar",
+    "linkReady": "Enlace listo",
+    "description": "Descripción",
+    "amount": "Importe",
+    "currency": "Moneda",
+    "generate": "Generar enlace",
+    "close": "Cerrar",
+    "received": "Pagos recibidos",
+    "noPayments": "Aún no hay pagos.",
+    "fee": "Comisión de la plataforma",
+    "net": "Neto",
+    "refunded": "Reembolsado",
+    "refund": "reembolsar",
+    "refundAmount": "Importe del reembolso (vacío = total)",
+    "confirmRefund": "Confirmar",
+    "st": {
+      "NOT_CONNECTED": "Sin conectar",
+      "ONBOARDING": "Registro en curso",
+      "PENDING_VERIFICATION": "Verificación pendiente",
+      "ENABLED": "Activa",
+      "RESTRICTED": "Restringida",
+      "DISABLED": "Desactivada"
+    },
+    "lst": {
+      "ACTIVE": "Activo",
+      "PAID": "Pagado",
+      "EXPIRED": "Expirado",
+      "CANCELED": "Cancelado"
+    },
+    "pst": {
+      "REQUIRES_PAYMENT": "Esperando",
+      "PROCESSING": "Procesando",
+      "SUCCEEDED": "Pagado",
+      "FAILED": "Fallido",
+      "REFUNDED": "Reembolsado",
+      "PARTIALLY_REFUNDED": "Reembolso parcial",
+      "CANCELED": "Cancelado"
+    },
+    "err": {
+      "generic": "No se pudo completar.",
+      "notConfigured": "Stripe Connect no configurado.",
+      "connectNotReady": "Completa el registro de tu cuenta de cobro.",
+      "notFound": "Registro no encontrado.",
+      "invalid": "Datos inválidos.",
+      "notRefundable": "Este pago no se puede reembolsar."
+    }
+  },
+  "payResult": {
+    "successTitle": "Pago confirmado",
+    "successBody": "¡Gracias! Tu pago se procesó de forma segura con Stripe.",
+    "canceledTitle": "Pago cancelado",
+    "canceledBody": "No se te ha cobrado. Puedes intentarlo de nuevo desde el enlace."
   }
 }
