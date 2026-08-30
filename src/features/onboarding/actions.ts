@@ -170,6 +170,7 @@ export async function createTenantAction(
 
 const choosePlanSchema = z.object({
   planCode: z.string().min(1),
+  interval: z.enum(["month", "year"]).default("month"),
   locale: z.string().default("pt-BR"),
 });
 
@@ -194,32 +195,35 @@ export async function choosePlanAction(
   const membership = session.memberships[0];
   if (!membership) redirect(`/${locale}/onboarding`);
 
+  const interval = parsed.data.interval === "year" ? "year" : "month";
   const plan = await prisma.plan.findUnique({ where: { code: planCode } });
   if (!plan) return { ok: false, fieldErrors: { planCode: "invalid" } };
 
   const db = forTenant(membership.tenantId);
 
-  // Upsert the pending PLATFORM subscription intent (trial).
-  const existing = await db.subscription.findFirst({
-    where: { scope: "PLATFORM" },
-  });
+  // Record the pending PLATFORM subscription intent (trial). Status only becomes
+  // ACTIVE from a verified Stripe webhook — never here. No simulated payment.
+  const existing = await db.subscription.findFirst({ where: { scope: "PLATFORM" } });
   if (existing) {
     await db.subscription.update({
       where: { id: existing.id },
-      data: { planId: plan.id, priceCents: plan.priceCents, currency: plan.currency },
+      data: {
+        planId: plan.id,
+        priceCents: interval === "year" ? plan.priceCentsYearly : plan.priceCents,
+        currency: plan.currency,
+        interval,
+      },
     });
   } else {
     await db.subscription.create({
       data: {
-        // `tenantId` is also enforced by the forTenant() extension at runtime;
-        // it's spelled out here because the extension doesn't rewrite types.
         tenantId: membership.tenantId,
         scope: "PLATFORM",
         planId: plan.id,
         status: "TRIALING",
-        priceCents: plan.priceCents,
+        priceCents: interval === "year" ? plan.priceCentsYearly : plan.priceCents,
         currency: plan.currency,
-        interval: plan.interval,
+        interval,
         currentPeriodEnd: new Date(Date.now() + plan.trialDays * 86_400_000),
       },
     });
@@ -232,16 +236,28 @@ export async function choosePlanAction(
       actorId: session.userId,
       actorLabel: session.email,
       action: "billing.plan_selected",
-      metadata: { planCode, stripeConfigured: isConfigured.stripe },
+      metadata: { planCode, interval, stripeConfigured: isConfigured.stripe },
     },
   });
 
   if (isConfigured.stripe) {
-    // Slice 5 completes this branch: create a Checkout Session via
-    // paymentProvider.createSubscriptionCheckout(...) and redirect to session.url.
-    // The subscription only becomes ACTIVE from the checkout.session.completed /
-    // invoice.paid webhook — never here.
-    return { ok: true, code: "stripeRedirectPending", data: { planCode } };
+    const { startCheckout } = await import("@/features/billing/service");
+    let checkoutUrl: string | null = null;
+    try {
+      checkoutUrl = (
+        await startCheckout({
+          tenantId: membership.tenantId,
+          planCode,
+          interval,
+          locale,
+          customerEmail: session.email,
+        })
+      ).url;
+    } catch (e) {
+      // Plan has no Stripe price id yet — fall through to the trial dashboard.
+      logger.warn({ err: (e as Error).message, planCode }, "onboarding.checkout_unavailable");
+    }
+    if (checkoutUrl) redirect(checkoutUrl); // outside try — never swallow NEXT_REDIRECT
   }
 
   redirect(`/${locale}/dashboard?welcome=1`);

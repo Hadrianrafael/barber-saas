@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 import { requireTenantContext, AuthorizationError } from "@/server/rbac/guard";
 import { prisma } from "@/server/db/client";
+import { gateLimit } from "@/features/billing/gate-helpers";
 import { employeeSchema, selfProfileSchema, workHoursSchema, timeOffSchema } from "./schema";
 import {
   createEmployee,
@@ -57,6 +58,10 @@ export async function saveEmployeeAction(_prev: TeamState, fd: FormData): Promis
   });
   if (!parsed.success) return zerr(parsed.error);
   const id = String(fd.get("id") ?? "");
+  if (!id) {
+    const gate = await gateLimit(ctx.tenantId, "employees");
+    if (gate) return gate;
+  }
   try {
     if (id) await updateEmployee(ctx.tenantId, id, parsed.data, await ctxActor(ctx));
     else await createEmployee(ctx.tenantId, parsed.data, await ctxActor(ctx));

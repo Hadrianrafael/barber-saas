@@ -271,10 +271,11 @@ model Tenant {
   // booking configuration (JSON — validated in app layer)
   bookingConfig Json?
 
-  trialEndsAt DateTime?
-  suspendedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  trialEndsAt      DateTime?
+  suspendedAt      DateTime?
+  stripeCustomerId String?   @unique // SaaS billing customer (platform Stripe acct)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   members            TenantMember[]
   employees          Employee[]
@@ -624,21 +625,25 @@ model Appointment {
 // ============================================================================
 
 model Plan {
-  id             String   @id @default(cuid())
-  code           String   @unique // "starter", "pro", "scale"
-  name           String
-  description    String?
-  priceCents     Int
-  currency       String   @default("BRL")
-  interval       String   @default("month") // "month" | "year"
-  stripePriceId  String?
-  trialDays      Int      @default(14)
-  isPublic       Boolean  @default(true)
-  sortOrder      Int      @default(0)
-  // hard limits enforced server-side at action time
-  limits         Json // { maxEmployees, maxServices, maxMonthlyAppointments, whatsapp, chatbot, campaigns }
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  code                 String   @unique // "starter", "pro", "scale"
+  name                 String
+  description          String?
+  priceCents           Int // monthly price
+  priceCentsYearly     Int? // yearly price (optional)
+  currency             String   @default("BRL")
+  stripePriceId        String? // Stripe Price id, monthly
+  stripePriceIdYearly  String? // Stripe Price id, yearly
+  trialDays            Int      @default(14)
+  isPublic             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  // hard limits + feature flags, enforced server-side at action time.
+  // { maxEmployees, maxServices, maxMonthlyAppointments, maxCustomers,
+  //   maxMonthlyMessages, maxCampaignsPerMonth, whatsapp, chatbot, campaigns,
+  //   loyalty, maxUnits }
+  limits               Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   subscriptions Subscription[]
 }

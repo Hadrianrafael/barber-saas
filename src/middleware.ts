@@ -45,6 +45,7 @@ export function middleware(req: NextRequest) {
     "finance",
     "campaigns",
     "conversations",
+    "billing",
     "settings",
     "onboarding",
   ]);

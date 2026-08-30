@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 import { requireTenantContext } from "@/server/rbac/guard";
+import { gateLimit } from "@/features/billing/gate-helpers";
 import { customerSchema, consentSchema } from "./schema";
 import {
   createCustomer,
@@ -72,6 +73,10 @@ export async function saveCustomerAction(_prev: CrmState, fd: FormData): Promise
   const parsed = customerSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return zerr(parsed.error);
   const id = String(fd.get("id") ?? "");
+  if (!id) {
+    const gate = await gateLimit(ctx.tenantId, "customers");
+    if (gate) return gate;
+  }
   try {
     if (id) await updateCustomer(ctx.tenantId, id, parsed.data, await actor(ctx));
     else await createCustomer(ctx.tenantId, parsed.data, await actor(ctx));

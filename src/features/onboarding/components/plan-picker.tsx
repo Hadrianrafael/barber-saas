@@ -13,7 +13,6 @@ interface PlanView {
   name: string;
   priceCents: number;
   currency: string;
-  interval: string;
   trialDays: number;
   limits: Record<string, unknown>;
 }
@@ -48,7 +47,7 @@ export function PlanPicker({
               <div className="text-2xl font-bold">
                 {formatMoney(p.priceCents, p.currency, locale)}
                 <span className="text-sm font-normal text-muted-foreground">
-                  /{t(`interval.${p.interval}`)}
+                  /{t("interval.month")}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">

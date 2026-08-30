@@ -37,6 +37,7 @@
     "finance": "Financeiro",
     "campaigns": "Campanhas",
     "conversations": "Conversas",
+    "billing": "Assinatura",
     "settings": "Configurações",
     "logout": "Sair"
   },
@@ -130,7 +131,10 @@
     "title": "Escolha o seu plano",
     "subtitle": "Todos começam com período de teste. Você só é cobrado ao final do teste.",
     "trial": "{days} dias de teste grátis",
-    "interval": { "month": "mês", "year": "ano" },
+    "interval": {
+      "month": "mês",
+      "year": "ano"
+    },
     "limitEmployees": "Até {n} profissionais",
     "limitAppointments": "Até {n} agendamentos/mês",
     "featWhatsapp": "WhatsApp incluído",
@@ -310,7 +314,10 @@
       "notLinked": "Sua conta não está vinculada a um barbeiro.",
       "invalidPhone": "Telefone inválido.",
       "endBeforeStart": "O fim deve ser depois do início.",
-      "invalidBreak": "Intervalo inválido."
+      "invalidBreak": "Intervalo inválido.",
+      "LIMIT_EXCEEDED": "Você atingiu o limite do seu plano. Faça upgrade para continuar.",
+      "FEATURE_UNAVAILABLE": "Este recurso não está incluído no seu plano.",
+      "BILLING_BLOCKED": "Acesso bloqueado por pendência de cobrança."
     }
   },
   "services": {
@@ -340,7 +347,97 @@
     "errors": {
       "generic": "Não foi possível salvar.",
       "invalidEmployees": "Barbeiro inválido.",
-      "notFound": "Serviço não encontrado."
+      "notFound": "Serviço não encontrado.",
+      "LIMIT_EXCEEDED": "Você atingiu o limite do seu plano. Faça upgrade para continuar.",
+      "FEATURE_UNAVAILABLE": "Este recurso não está incluído no seu plano.",
+      "BILLING_BLOCKED": "Acesso bloqueado por pendência de cobrança."
+    }
+  },
+  "pricing": {
+    "title": "Planos",
+    "subtitle": "Comece com teste grátis. Só é cobrado ao final do período de teste.",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "per": {
+      "month": "mês",
+      "year": "ano"
+    },
+    "trial": "{days} dias de teste grátis",
+    "current": "Plano atual",
+    "subscribe": "Assinar",
+    "switch": "Mudar para este plano",
+    "start": "Começar",
+    "lim": {
+      "employees": "Até {n} profissionais",
+      "appointments": "Até {n} agendamentos/mês",
+      "customers": "Até {n} clientes"
+    },
+    "feat": {
+      "whatsappYes": "WhatsApp incluído",
+      "whatsappNo": "Sem WhatsApp",
+      "chatbotYes": "Chatbot IA incluído",
+      "chatbotNo": "Sem chatbot",
+      "campaignsYes": "Campanhas incluídas",
+      "campaignsNo": "Sem campanhas"
+    },
+    "notice": {
+      "generic": "Não foi possível iniciar o checkout.",
+      "stripeNotConfigured": "O pagamento ainda não está ativo nesta instalação. Configure as chaves da Stripe para habilitar o checkout.",
+      "planNotConfigured": "Este plano ainda não tem preço configurado na Stripe.",
+      "noCustomer": "Conta de cobrança não encontrada.",
+      "invalid": "Dados inválidos."
+    }
+  },
+  "billing": {
+    "title": "Assinatura",
+    "subtitle": "Plano da sua barbearia, faturas e forma de pagamento.",
+    "currentPlan": "Plano atual",
+    "plan": "Plano",
+    "noPlan": "Nenhum",
+    "status": "Status",
+    "price": "Preço",
+    "per": {
+      "month": "mês",
+      "year": "ano"
+    },
+    "trialEnds": "Teste termina em",
+    "renews": "Renova em",
+    "cancelScheduled": "O cancelamento está agendado para o fim do período.",
+    "managePortal": "Gerenciar pagamento",
+    "changePlan": "Mudar de plano",
+    "choosePlan": "Escolher plano",
+    "invoices": "Faturas",
+    "noInvoices": "Nenhuma fatura ainda.",
+    "view": "ver",
+    "stripeNotConfigured": "O pagamento ainda não está ativo. Configure as chaves da Stripe (veja docs/deployment/stripe.md) para habilitar checkout, portal e webhooks.",
+    "grace": "O último pagamento falhou. Regularize para não perder o acesso.",
+    "st": {
+      "TRIALING": "Em teste",
+      "ACTIVE": "Ativo",
+      "PAST_DUE": "Pagamento pendente",
+      "CANCELED": "Cancelado",
+      "UNPAID": "Não pago",
+      "INCOMPLETE": "Incompleto",
+      "NONE": "Sem assinatura"
+    },
+    "inv": {
+      "PAID": "Paga",
+      "OPEN": "Em aberto",
+      "DRAFT": "Rascunho",
+      "VOID": "Anulada",
+      "UNCOLLECTIBLE": "Incobrável"
+    },
+    "block": {
+      "generic": "O acesso está bloqueado por pendência de cobrança.",
+      "TRIAL_EXPIRED": "Seu período de teste terminou. Assine um plano para continuar.",
+      "PAST_DUE_GRACE_OVER": "O pagamento está em atraso e o período de tolerância acabou.",
+      "CANCELED": "A assinatura foi cancelada.",
+      "UNPAID": "Há faturas não pagas."
+    },
+    "gate": {
+      "LIMIT_EXCEEDED": "Você atingiu o limite do seu plano para este recurso. Faça upgrade para continuar.",
+      "FEATURE_UNAVAILABLE": "Este recurso não está incluído no seu plano.",
+      "BILLING_BLOCKED": "O acesso está bloqueado por pendência de cobrança."
     }
   },
   "crm": {
@@ -415,7 +512,10 @@
       "duplicate": "Já existe um cliente com este e-mail ou telefone.",
       "invalidEmployee": "Barbeiro inválido.",
       "notFound": "Cliente não encontrado.",
-      "invalidPhone": "Telefone inválido."
+      "invalidPhone": "Telefone inválido.",
+      "LIMIT_EXCEEDED": "Você atingiu o limite do seu plano. Faça upgrade para continuar.",
+      "FEATURE_UNAVAILABLE": "Este recurso não está incluído no seu plano.",
+      "BILLING_BLOCKED": "Acesso bloqueado por pendência de cobrança."
     }
   },
   "agenda": {

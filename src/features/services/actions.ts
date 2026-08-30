@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
 import { requireTenantContext } from "@/server/rbac/guard";
+import { gateLimit } from "@/features/billing/gate-helpers";
 import { serviceSchema } from "./schema";
 import { createService, updateService, setServiceStatus, deleteService } from "./service";
 
@@ -39,6 +40,10 @@ export async function saveServiceAction(_prev: ServiceState, fd: FormData): Prom
   });
   if (!parsed.success) return zerr(parsed.error);
   const id = String(fd.get("id") ?? "");
+  if (!id) {
+    const gate = await gateLimit(ctx.tenantId, "services");
+    if (gate) return gate;
+  }
   try {
     if (id) await updateService(ctx.tenantId, id, parsed.data, await actor(ctx));
     else await createService(ctx.tenantId, parsed.data, await actor(ctx));

@@ -35,7 +35,6 @@ export default async function OnboardingPlanPage({
           name: p.name,
           priceCents: p.priceCents,
           currency: p.currency,
-          interval: p.interval,
           trialDays: p.trialDays,
           limits: (p.limits ?? {}) as Record<string, unknown>,
         }))}

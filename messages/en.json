@@ -37,6 +37,7 @@
     "finance": "Finance",
     "campaigns": "Campaigns",
     "conversations": "Conversations",
+    "billing": "Billing",
     "settings": "Settings",
     "logout": "Sign out"
   },
@@ -130,7 +131,10 @@
     "title": "Choose your plan",
     "subtitle": "Every plan starts with a trial. You're only charged when the trial ends.",
     "trial": "{days}-day free trial",
-    "interval": { "month": "month", "year": "year" },
+    "interval": {
+      "month": "month",
+      "year": "year"
+    },
     "limitEmployees": "Up to {n} staff",
     "limitAppointments": "Up to {n} appointments/mo",
     "featWhatsapp": "WhatsApp included",
@@ -310,7 +314,10 @@
       "notLinked": "Your account isn't linked to a barber.",
       "invalidPhone": "Invalid phone.",
       "endBeforeStart": "End must be after start.",
-      "invalidBreak": "Invalid break."
+      "invalidBreak": "Invalid break.",
+      "LIMIT_EXCEEDED": "You've reached your plan's limit. Upgrade to continue.",
+      "FEATURE_UNAVAILABLE": "This feature isn't included in your plan.",
+      "BILLING_BLOCKED": "Access blocked due to a billing issue."
     }
   },
   "services": {
@@ -340,7 +347,97 @@
     "errors": {
       "generic": "Could not save.",
       "invalidEmployees": "Invalid barber.",
-      "notFound": "Service not found."
+      "notFound": "Service not found.",
+      "LIMIT_EXCEEDED": "You've reached your plan's limit. Upgrade to continue.",
+      "FEATURE_UNAVAILABLE": "This feature isn't included in your plan.",
+      "BILLING_BLOCKED": "Access blocked due to a billing issue."
+    }
+  },
+  "pricing": {
+    "title": "Plans",
+    "subtitle": "Start with a free trial. You're only charged when the trial ends.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "per": {
+      "month": "month",
+      "year": "year"
+    },
+    "trial": "{days}-day free trial",
+    "current": "Current plan",
+    "subscribe": "Subscribe",
+    "switch": "Switch to this plan",
+    "start": "Get started",
+    "lim": {
+      "employees": "Up to {n} staff",
+      "appointments": "Up to {n} appointments/mo",
+      "customers": "Up to {n} clients"
+    },
+    "feat": {
+      "whatsappYes": "WhatsApp included",
+      "whatsappNo": "No WhatsApp",
+      "chatbotYes": "AI chatbot included",
+      "chatbotNo": "No chatbot",
+      "campaignsYes": "Campaigns included",
+      "campaignsNo": "No campaigns"
+    },
+    "notice": {
+      "generic": "Could not start checkout.",
+      "stripeNotConfigured": "Payments aren't active in this deployment yet. Set the Stripe keys to enable checkout.",
+      "planNotConfigured": "This plan has no Stripe price configured yet.",
+      "noCustomer": "Billing account not found.",
+      "invalid": "Invalid data."
+    }
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Your barbershop's plan, invoices and payment method.",
+    "currentPlan": "Current plan",
+    "plan": "Plan",
+    "noPlan": "None",
+    "status": "Status",
+    "price": "Price",
+    "per": {
+      "month": "month",
+      "year": "year"
+    },
+    "trialEnds": "Trial ends",
+    "renews": "Renews",
+    "cancelScheduled": "Cancellation is scheduled for the end of the period.",
+    "managePortal": "Manage payment",
+    "changePlan": "Change plan",
+    "choosePlan": "Choose plan",
+    "invoices": "Invoices",
+    "noInvoices": "No invoices yet.",
+    "view": "view",
+    "stripeNotConfigured": "Payments aren't active yet. Set the Stripe keys (see docs/deployment/stripe.md) to enable checkout, portal and webhooks.",
+    "grace": "Your last payment failed. Please update your payment method to keep access.",
+    "st": {
+      "TRIALING": "Trialing",
+      "ACTIVE": "Active",
+      "PAST_DUE": "Past due",
+      "CANCELED": "Canceled",
+      "UNPAID": "Unpaid",
+      "INCOMPLETE": "Incomplete",
+      "NONE": "No subscription"
+    },
+    "inv": {
+      "PAID": "Paid",
+      "OPEN": "Open",
+      "DRAFT": "Draft",
+      "VOID": "Void",
+      "UNCOLLECTIBLE": "Uncollectible"
+    },
+    "block": {
+      "generic": "Access is blocked due to a billing issue.",
+      "TRIAL_EXPIRED": "Your trial has ended. Subscribe to a plan to continue.",
+      "PAST_DUE_GRACE_OVER": "Payment is overdue and the grace period is over.",
+      "CANCELED": "The subscription has been canceled.",
+      "UNPAID": "There are unpaid invoices."
+    },
+    "gate": {
+      "LIMIT_EXCEEDED": "You've reached your plan's limit for this. Upgrade to continue.",
+      "FEATURE_UNAVAILABLE": "This feature isn't included in your plan.",
+      "BILLING_BLOCKED": "Access is blocked due to a billing issue."
     }
   },
   "crm": {
@@ -415,7 +512,10 @@
       "duplicate": "A client with this email or phone already exists.",
       "invalidEmployee": "Invalid barber.",
       "notFound": "Client not found.",
-      "invalidPhone": "Invalid phone."
+      "invalidPhone": "Invalid phone.",
+      "LIMIT_EXCEEDED": "You've reached your plan's limit. Upgrade to continue.",
+      "FEATURE_UNAVAILABLE": "This feature isn't included in your plan.",
+      "BILLING_BLOCKED": "Access blocked due to a billing issue."
     }
   },
   "agenda": {

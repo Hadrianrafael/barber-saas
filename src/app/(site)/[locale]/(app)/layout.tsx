@@ -17,6 +17,7 @@ const NAV = [
   { key: "finance", href: "finance" },
   { key: "campaigns", href: "campaigns" },
   { key: "conversations", href: "conversations" },
+  { key: "billing", href: "billing" },
   { key: "settings", href: "settings" },
 ] as const;
 
