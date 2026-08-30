@@ -8,7 +8,7 @@ priority list in the project brief: get sellable flows in first.
 |---|---|---|---|
 | 0 | **Foundation** | Repo, tooling, CI, Docker, Next app skeleton, full Prisma multi-tenant schema, env validation, i18n (pt-BR/en/es), Azure IaC, docs/ADRs | ✅ done |
 | 1 | **Auth · Multi-tenancy · RBAC** | Sign up, sign in/out, e-mail verification, password reset/change, opaque sessions, tenant isolation layer (`forTenant`), role guards (`requireTenantContext`), separate Super Admin realm + console shell | ✅ core done |
-| 2 | **Tenant onboarding + settings** | Create barbershop (name → slug → plan choice), business hours, holidays, profile, public slug, booking config | ⬜ |
+| 2 | **Tenant onboarding + settings** | 3-step create-barbershop wizard (identity → contact/public → hours) with backend slug validation + stable `/barber/{slug}` URL; settings area (profile, branding upload, region, hours, holidays, booking config) RBAC-gated; per-tenant country/currency/timezone/locale (`src/lib/regions.ts`, ADR 0004); post-onboarding plan step → Stripe Checkout when configured, trial otherwise (**paid activation only via webhook — Slice 5**); public page scaffold (booking flow → Slice 9) | ✅ done |
 | 3 | **Team · Services · Schedule** | Barbers (work hours, time off, vacation, commission), services CRUD, agenda day/week/month, **server-side conflict prevention** (serializable tx + Postgres GiST exclusion) | ⬜ |
 | 4 | **Clients CRM** | Client CRUD, appointment history, preferred barber, spend, segments, communication consent / opt-in | ⬜ |
 | 5 | **Stripe subscription (SaaS billing)** | `/pricing`, checkout, plans as data + limits enforced server-side, idempotent webhooks, plan gating, grace period, billing portal | ⬜ |

@@ -55,6 +55,38 @@ split by namespace. Components never hard-code copy. Locale is selectable on the
 login screen and in settings, persisted in the `BARBER_LOCALE` cookie and on the
 `User` / `Customer` records.
 
+## Onboarding & tenant settings (Slice 2)
+
+- **Wizard** (`/[locale]/onboarding`) — 3 steps in one client component, one
+  server action (`createTenantAction`): identity (name, slug, country, currency,
+  timezone, default language) → optional contact/public info → business hours.
+  The action re-validates everything server-side (never trusts the client's slug
+  availability), then `createTenantWithOwner()` atomically creates
+  `Tenant` + `TenantMember(OWNER)` + default weekly hours + a
+  `PayoutAccount(NOT_CONNECTED)`, status `TRIALING`.
+- **Slug** — `src/features/tenant/slug.ts`: normalise → format-validate →
+  reserved-word check → DB uniqueness (injected `exists` fn, so it's unit-tested
+  without a DB). The check→create race is closed with a re-check inside the
+  creation transaction. `/barber/{slug}` is the permanent public URL.
+- **Plan step** (`/[locale]/onboarding/plan`) — records the chosen plan on a
+  `TRIALING` PLATFORM `Subscription`. If `isConfigured.stripe`, this is where
+  Slice 5 will redirect to Stripe Checkout. **`status = ACTIVE` is only ever set
+  by the Stripe webhook handler** — a trial is not a paid activation and no paid
+  feature unlocks here.
+- **Settings** (`/[locale]/settings`) — tabbed: profile, branding (logo/cover
+  upload via the storage abstraction), region (ADR 0004), hours, holidays,
+  booking config (`Tenant.bookingConfig` JSON, validated by
+  `bookingConfigSchema`). Every mutation goes through `requireTenantContext({
+  permission: "tenant.settings.write" })`; `BARBER` role gets a read-only view.
+- **Regional config** — per `Tenant` (`country`/`currency`/`timezone`/`locale`),
+  smart-defaulted from `src/lib/regions.ts`. All money/date/time formatting is
+  `Intl.*` at render time. See ADR 0004.
+- **Public page** (`/[locale]/barber/{slug}`) — read model in
+  `src/features/public/tenant-public.ts` (exposes only client-facing fields;
+  suspended/canceled tenants 404). Renders profile, services, team, hours,
+  reviews in all three languages. The booking flow itself is Slice 9 (the
+  "Agendar" button is present but disabled).
+
 ## Integrations (all env-gated, degrade cleanly, never simulated)
 
 | Concern | Interface | Active driver | Fallback when unconfigured |
