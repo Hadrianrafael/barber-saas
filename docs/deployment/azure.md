@@ -1,7 +1,17 @@
 # Azure deployment
 
 > This is the reference for the infrastructure. The **step-by-step launch
-> runbook** is [`../GO-LIVE.md`](../GO-LIVE.md).
+> runbook** is [`../GO-LIVE.md`](../GO-LIVE.md); the tick-box form is
+> [`../GO-LIVE-CHECKLIST.md`](../GO-LIVE-CHECKLIST.md). Key Vault:
+> [`keyvault.md`](keyvault.md). Domain/URLs: [`domain.md`](domain.md). Backup &
+> rollback: [`backup-recovery.md`](backup-recovery.md). Costs:
+> [`../AZURE-COST-CHECKLIST.md`](../AZURE-COST-CHECKLIST.md).
+
+**Reproducibility:** the same `infra/main.bicep` produces staging and production
+— only `environment` (`staging` | `prod`), the resource group, `image`,
+`pgAdminPassword` and `appUrl` differ. It is validated in CI
+(`az bicep build`), grants each app/job identity `AcrPull` on the registry, and
+declares every secret slot. No secret is in the template.
 
 Target: **Azure Container Apps** (web + worker + scheduled jobs), **Azure
 Database for PostgreSQL Flexible Server 16**, **Azure Cache for Redis**, **Azure

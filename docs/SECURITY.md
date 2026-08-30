@@ -4,10 +4,18 @@ Always-on controls (not optional, not behind a flag):
 
 ## Secrets
 - No secret in the repo or in client bundles. Server-only via `src/env.ts`;
-  Azure Key Vault in production (referenced as Container Apps secrets).
-- Stripe / Anthropic / WhatsApp keys are **server-side only**. `.env` is
-  git-ignored; `.gitignore` blocks `.env*`, `*.pem`, `*.key` before the first
-  commit.
+  Azure Key Vault in production (referenced as Container Apps `secretRef`, one of
+  16 declared slots — see `docs/deployment/keyvault.md`).
+- Stripe / Anthropic / WhatsApp keys are **server-side only**. `.gitignore`
+  blocks `.env`, `.env.*` (staging/prod files included), `*.pem`, `*.key`,
+  `*.p12/.pfx/.crt`, `secrets/`, `.storage/`; `.dockerignore` excludes `.env*`
+  and `.git` from the build context.
+- Logs never carry secrets: pino redaction list + `logFinancialEvent` field
+  allowlist. The `check:env` / `preflight` / `keyvault:push` scripts print
+  masked hints only.
+- A tracked-file secret scan (`git grep` for `sk_(test|live)_`, `whsec_`, `re_…`,
+  `sk-ant-…`, private-key headers) is clean and is a release step in
+  `docs/GO-LIVE-CHECKLIST.md` (I6).
 
 ## AuthN / sessions
 - Opaque session tokens; only SHA-256 hashes stored. httpOnly + `secure` (prod) +
@@ -116,6 +124,15 @@ Always-on controls (not optional, not behind a flag):
 - `dev-cybersecurity` deep review (OWASP Top 10) sign-off.
 - Infra hardening before prod: VNet for Postgres/Redis, private endpoints for
   Storage/Key Vault, Front Door/WAF (see `infra/README.md`).
+- **`npm audit`**: 6 advisories (2 moderate, 4 high) all from the `postcss`
+  version **bundled inside `next` 15.5.24** (`node_modules/next/node_modules/postcss`).
+  These are **build-time only** — `postcss` processes the app's own Tailwind CSS
+  during `next build` and is **not** in the standalone runtime image; the CSS is
+  not attacker-controlled. Remediation is a deliberate `next@16` upgrade (a
+  breaking change, out of the launch scope). CI gates on **critical** only
+  (`npm audit --omit=dev --audit-level=critical`, currently 0) and surfaces the
+  rest in the log. The top-level `postcss` dev-dependency is already on a fixed
+  8.5.x.
 
 ## Fixed during launch prep (2026-09)
 - **Cross-tenant write via loyalty** — `adjustPoints` / `redeemReward` /
@@ -123,3 +140,8 @@ Always-on controls (not optional, not behind a flag):
   Fixed with an `assertCustomerInTenant()` guard. Covered by the isolation
   matrix.
 - **CSV formula injection** in the finance export — mitigated (see above).
+- **`.gitignore` gap** — `.env.staging` / `.env.production` (non-`.local`) were
+  not ignored. Now `.env.*` is ignored (with `!.env.example`), plus `secrets/`,
+  `.storage/`, `*.p12/.pfx/.crt`.
+- **CI**: added a Bicep validation step (`az bicep build`) and a
+  critical-only dependency audit.

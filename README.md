@@ -42,14 +42,26 @@ Super admin console: <http://localhost:3000/admin> (credentials from
 
 | | |
 |---|---|
-| [docs/GO-LIVE.md](docs/GO-LIVE.md) | **step-by-step launch runbook + checklist** |
+| [docs/GO-LIVE.md](docs/GO-LIVE.md) | **step-by-step launch runbook** |
+| [docs/GO-LIVE-CHECKLIST.md](docs/GO-LIVE-CHECKLIST.md) | **executable go-live checklist** (status / owner / command / validate) |
 | [docs/V1-REPORT.md](docs/V1-REPORT.md) | consolidated state report |
 | [docs/STRIPE.md](docs/STRIPE.md) | Stripe: both flows, Tax, Invoicing, test mode, go-live |
+| [docs/AZURE-COST-CHECKLIST.md](docs/AZURE-COST-CHECKLIST.md) | billed resources + cost controls |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | system design |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | vertical slices, all ✅ for V1 |
 | [docs/SECURITY.md](docs/SECURITY.md) | always-on controls |
-| [docs/adr/](docs/adr/) | 0001–0014 decision records |
-| [docs/deployment/](docs/deployment/) | Azure, env vars, DB, local dev, Stripe/Connect, Resend, WhatsApp, chatbot |
+| [docs/adr/](docs/adr/) | 0001–0015 decision records |
+| [docs/deployment/](docs/deployment/) | Azure, Key Vault, domain, backup/recovery, env vars, DB, local dev, Stripe/Connect, Resend, WhatsApp, chatbot |
+
+## Operational scripts
+
+| Script | Purpose |
+|---|---|
+| `npm run check:env` | which required vars + integrations are configured (masked, no secrets) |
+| `npm run preflight` | connectivity: Postgres, Redis, Blob, Stripe |
+| `npm run smoke -- <url>` | post-deploy HTTP smoke test |
+| `npm run keyvault:push -- --vault <kv> --file .env.<env>` | push local secrets to Azure Key Vault |
+| `npm run stripe:sync-plans` | create/update Stripe Products+Prices from the `Plan` rows |
 
 ## Layout
 

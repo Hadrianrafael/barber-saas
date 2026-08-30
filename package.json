@@ -27,6 +27,10 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "stripe:sync-plans": "tsx scripts/stripe/sync-plans.ts",
+    "check:env": "tsx scripts/check-env.ts",
+    "preflight": "tsx scripts/preflight.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "keyvault:push": "tsx scripts/keyvault-push.ts",
     "prepare": "husky || true"
   },
   "prisma": {

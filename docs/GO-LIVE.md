@@ -7,9 +7,22 @@ take the SaaS from `READY FOR CONFIGURATION` to selling. Do it once for
 Legend: 🧑 = you (accounts / dashboards / DNS) · 🤖 = a command you run · ✅ = a
 check.
 
+**Checklist form (status / owner / command / validate):**
+[`GO-LIVE-CHECKLIST.md`](GO-LIVE-CHECKLIST.md).
+
 Related docs: [`STRIPE.md`](STRIPE.md) · [`deployment/azure.md`](deployment/azure.md) ·
 [`deployment/environment-variables.md`](deployment/environment-variables.md) ·
+[`deployment/keyvault.md`](deployment/keyvault.md) ·
+[`deployment/domain.md`](deployment/domain.md) ·
+[`deployment/backup-recovery.md`](deployment/backup-recovery.md) ·
+[`AZURE-COST-CHECKLIST.md`](AZURE-COST-CHECKLIST.md) ·
 [`SECURITY.md`](SECURITY.md) · [`V1-REPORT.md`](V1-REPORT.md).
+
+**Helper scripts** (never print secrets): `npm run check:env` (which vars /
+integrations are set), `npm run preflight` (Postgres / Redis / Blob / Stripe
+connectivity), `npm run smoke -- <url>` (post-deploy HTTP checks),
+`npm run keyvault:push -- --vault <kv> --file .env.<env>` (push secrets to Key
+Vault), `npm run stripe:sync-plans` (Stripe Products/Prices from the DB).
 
 ---
 

@@ -45,12 +45,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Dependency audit (fail only on critical)
+        run: npm audit --omit=dev --audit-level=critical
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Validate Bicep
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

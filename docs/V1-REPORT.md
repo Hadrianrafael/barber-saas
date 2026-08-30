@@ -7,9 +7,12 @@ fazer o deploy e rodar o checklist. Nenhuma integração é simulada: sem chave,
 funcionalidade degrada de forma limpa (e-mail vai para o console, pagamentos
 ficam desabilitados, o chat cai na fila humana), nunca finge sucesso.
 
-**Runbook de lançamento passo a passo:** [docs/GO-LIVE.md](GO-LIVE.md).
+**Runbook de lançamento:** [docs/GO-LIVE.md](GO-LIVE.md) (narrativo) ·
+[docs/GO-LIVE-CHECKLIST.md](GO-LIVE-CHECKLIST.md) (checklist executável A–N).
+Scripts: `npm run check:env` · `npm run preflight` · `npm run smoke -- <url>` ·
+`npm run keyvault:push` · `npm run stripe:sync-plans` (nenhum imprime secret).
 
-Branch: `main` · 12 migrations · 14 ADRs · **186 testes verdes** (`tsc` + `lint`
+Branch: `main` · 12 migrations · 15 ADRs · **186 testes verdes** (`tsc` + `lint`
 + `next build` limpos).
 
 ---
@@ -362,5 +365,6 @@ STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans
 | `4bfa2a2` | Stripe — finalização (Products/Prices como dados + `stripe:sync-plans`, upgrade/downgrade in-place, verificação de `event.account` no Connect, `subscription.resumed` + `charge.refunded` no SaaS, Stripe Tax opt-in, idempotency keys, logs financeiros estruturados). ADR 0013, `docs/STRIPE.md` |
 | `beea4ae` | docs: hash da finalização Stripe no relatório |
 | `53183ec` | **Preparação de lançamento** — correção de vazamento cross-tenant na fidelidade; injeção de fórmula CSV mitigada; Bicep/Dockerfile/deploy.yml consistentes (imagem única, nomes `barber-<env>-*`, jobs `cron-retry-messages` + `-migrate`, probes separados, todos os secrets declarados); `tenant-isolation` + `golden-path` E2E. |
+| *(este lote)* | **Fase de configuração** — scripts `check:env`/`preflight`/`smoke`/`keyvault:push` (nunca imprimem secret); Bicep com `AcrPull` para as identidades + fix `az.environment()` + validação no CI; `.gitignore` cobre `.env.*`/`secrets/`; CI com `npm audit` (critical) + `az bicep build`; docs `GO-LIVE-CHECKLIST.md`, `deployment/keyvault.md`, `deployment/domain.md`, `deployment/backup-recovery.md`, `AZURE-COST-CHECKLIST.md`. ADR 0015. **Sem mudança de escopo.** |
 
-ADRs: `docs/adr/0001`–`0014`. Runbook: `docs/GO-LIVE.md`.
+ADRs: `docs/adr/0001`–`0015`. Runbook: `docs/GO-LIVE.md`.

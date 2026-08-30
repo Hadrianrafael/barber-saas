@@ -191,8 +191,10 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // resources, so they are real from day one.
 var dbUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
 var redisUrl = 'rediss://:${redis.listKeys().primaryKey}@${redis.properties.hostName}:${redis.properties.sslPort}'
-var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${az.environment().suffixes.storage}'
-var storagePublicUrl = 'https://${storage.name}.blob.${az.environment().suffixes.storage}/uploads'
+// Azure public cloud suffix (brazilsouth). Change for sovereign/gov clouds.
+var storageSuffix = 'core.windows.net'
+var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${storageSuffix}'
+var storagePublicUrl = '${storage.properties.primaryEndpoints.blob}uploads'
 
 // Every integration secret SLOT. Empty until you swap `value` for a Key Vault
 // reference. `env.ts` treats an empty value as "not configured" and the feature
@@ -454,6 +456,33 @@ resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Let every app / job pull the image from ACR with its managed identity.
+// (Key Vault "Secrets User" is granted out of band — see docs/deployment/keyvault.md.)
+// ---------------------------------------------------------------------------
+var acrPullRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+)
+var pullPrincipals = [
+  web.identity.principalId
+  worker.identity.principalId
+  remindersJob.identity.principalId
+  retryMessagesJob.identity.principalId
+  migrateJob.identity.principalId
+]
+resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for pid in pullPrincipals: {
+    name: guid(acr.id, pid, 'acrpull')
+    scope: acr
+    properties: {
+      roleDefinitionId: acrPullRoleId
+      principalId: pid
+      principalType: 'ServicePrincipal'
+    }
+  }
+]
 
 output acrLoginServer string = acr.properties.loginServer
 output webFqdn string = web.properties.configuration.ingress.fqdn

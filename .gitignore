@@ -14,15 +14,16 @@ dist/
 
 # Environment & secrets — NEVER commit
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*.local
-.env.test
+.env.*
+!.env.example
 *.pem
 *.key
-!.env.example
+*.p12
+*.pfx
+*.crt
+*-secret*.json
+secrets/
+.storage/
 
 # Testing
 coverage/
