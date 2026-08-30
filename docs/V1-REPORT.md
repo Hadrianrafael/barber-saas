@@ -9,7 +9,7 @@ ficam desabilitados, o chat cai na fila humana), nunca finge sucesso.
 
 **Runbook de lançamento passo a passo:** [docs/GO-LIVE.md](GO-LIVE.md).
 
-Branch: `main` · 15 migrations · 13 ADRs · **186 testes verdes** (`tsc` + `lint`
+Branch: `main` · 12 migrations · 14 ADRs · **186 testes verdes** (`tsc` + `lint`
 + `next build` limpos).
 
 ---
@@ -363,4 +363,4 @@ STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans
 | `beea4ae` | docs: hash da finalização Stripe no relatório |
 | `53183ec` | **Preparação de lançamento** — correção de vazamento cross-tenant na fidelidade; injeção de fórmula CSV mitigada; Bicep/Dockerfile/deploy.yml consistentes (imagem única, nomes `barber-<env>-*`, jobs `cron-retry-messages` + `-migrate`, probes separados, todos os secrets declarados); `tenant-isolation` + `golden-path` E2E. |
 
-ADRs: `docs/adr/0001`–`0013`. Runbook: `docs/GO-LIVE.md`.
+ADRs: `docs/adr/0001`–`0014`. Runbook: `docs/GO-LIVE.md`.
