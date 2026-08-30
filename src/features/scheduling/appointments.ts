@@ -253,7 +253,21 @@ export async function createAppointment(input: CreateAppointmentInput) {
     employeeId: appt.employeeId,
   });
   logger.info({ tenantId: input.tenantId, appointmentId: appt.id }, "appointment.created");
+  if (input.source !== "IMPORT") notifyAsync(appt.id, "appointment_confirmation");
   return appt;
+}
+
+/** Enqueue a customer notification without blocking the caller / failing on Redis. */
+function notifyAsync(
+  appointmentId: string,
+  key: "appointment_confirmation" | "appointment_canceled" | "appointment_rescheduled",
+  extra?: Record<string, string>,
+) {
+  void import("@/worker/queues")
+    .then((m) => m.enqueueAppointmentNotification(appointmentId, key, extra))
+    .catch((e) =>
+      logger.warn({ err: (e as Error).message, appointmentId, key }, "notify.enqueue_failed"),
+    );
 }
 
 export interface RescheduleInput {
@@ -320,6 +334,7 @@ export async function rescheduleAppointment(input: RescheduleInput) {
     startsAt: updated.startsAt.toISOString(),
     employeeId: updated.employeeId,
   });
+  notifyAsync(updated.id, "appointment_rescheduled");
   return updated;
 }
 
@@ -349,6 +364,11 @@ async function transition(
   if (!updated) throw new SchedulingError("VALIDATION", "transition failed");
 
   await audit(tenantId, actor, `appointment.${to.toLowerCase()}`, updated.id);
+  if (to === "CANCELED") {
+    notifyAsync(updated.id, "appointment_canceled", {
+      reason: extra.cancelReason ? String(extra.cancelReason) : "",
+    });
+  }
   return updated;
 
   async function runTransition() {

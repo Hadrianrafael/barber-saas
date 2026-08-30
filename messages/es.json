@@ -40,7 +40,8 @@
     "billing": "Facturación",
     "settings": "Configuración",
     "logout": "Salir",
-    "payments": "Pagos"
+    "payments": "Pagos",
+    "messages": "Mensajes"
   },
   "auth": {
     "signInTitle": "Iniciar sesión",
@@ -717,6 +718,35 @@
       "REFUNDED": "Reembolsado",
       "PARTIALLY_REFUNDED": "Reembolso parcial",
       "CANCELED": "Cancelado"
+    }
+  },
+  "messagesLog": {
+    "title": "Mensajes",
+    "subtitle": "Historial de correos y mensajes de WhatsApp enviados a los clientes, con estado de entrega.",
+    "when": "Cuándo",
+    "channel": "Canal",
+    "to": "Para",
+    "preview": "Vista previa",
+    "status": "Estado",
+    "empty": "No hay mensajes.",
+    "count": "{total} mensaje(s)",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "allChannels": "Todos los canales",
+    "allStatuses": "Todos los estados",
+    "ch": {
+      "EMAIL": "Correo",
+      "WHATSAPP": "WhatsApp",
+      "SMS": "SMS",
+      "IN_APP": "En la app"
+    },
+    "st": {
+      "QUEUED": "En cola",
+      "SENT": "Enviado",
+      "DELIVERED": "Entregado",
+      "READ": "Leído",
+      "FAILED": "Fallido",
+      "BOUNCED": "Rebotado"
     }
   }
 }

@@ -40,7 +40,8 @@
     "billing": "Billing",
     "settings": "Settings",
     "logout": "Sign out",
-    "payments": "Payments"
+    "payments": "Payments",
+    "messages": "Messages"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -717,6 +718,35 @@
       "REFUNDED": "Refunded",
       "PARTIALLY_REFUNDED": "Partially refunded",
       "CANCELED": "Canceled"
+    }
+  },
+  "messagesLog": {
+    "title": "Messages",
+    "subtitle": "History of e-mails and WhatsApp messages sent to clients, with delivery status.",
+    "when": "When",
+    "channel": "Channel",
+    "to": "To",
+    "preview": "Preview",
+    "status": "Status",
+    "empty": "No messages.",
+    "count": "{total} message(s)",
+    "prev": "Previous",
+    "next": "Next",
+    "allChannels": "All channels",
+    "allStatuses": "All statuses",
+    "ch": {
+      "EMAIL": "Email",
+      "WHATSAPP": "WhatsApp",
+      "SMS": "SMS",
+      "IN_APP": "In-app"
+    },
+    "st": {
+      "QUEUED": "Queued",
+      "SENT": "Sent",
+      "DELIVERED": "Delivered",
+      "READ": "Read",
+      "FAILED": "Failed",
+      "BOUNCED": "Bounced"
     }
   }
 }

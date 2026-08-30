@@ -24,6 +24,7 @@ interface CreateLinkInput {
   appointmentId?: string | null;
   createdById?: string | null;
   locale: string;
+  notify?: boolean;
 }
 
 export async function createPaymentLink(input: CreateLinkInput) {
@@ -91,6 +92,12 @@ export async function createPaymentLink(input: CreateLinkInput) {
     data: { providerObject: checkout.id, url: checkout.url },
   });
   logger.info({ tenantId: input.tenantId, linkId: link.id }, "payment_link.created");
+
+  if (input.notify && input.customerId) {
+    void import("@/features/messaging/notify")
+      .then((m) => m.notifyPaymentLink(updated.id))
+      .catch((e) => logger.warn({ err: (e as Error).message }, "payment_link.notify_failed"));
+  }
   return updated;
 }
 

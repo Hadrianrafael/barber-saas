@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
+  // BullMQ is only reached from the worker / async enqueue paths; keep it out of
+  // the webpack graph so its optional `@valkey/valkey-glide` driver isn't
+  // resolved during the Next build.
+  serverExternalPackages: ["bullmq", "ioredis"],
   eslint: {
     // CI runs `next lint` as a dedicated step; don't fail production builds on it.
     ignoreDuringBuilds: true,
