@@ -106,12 +106,13 @@ export default async function BarberPublicPage({
           {tenant.instagram && <span>· @{tenant.instagram}</span>}
         </div>
 
-        <div>
-          <Button size="lg" disabled>
-            {t("bookCta")}
-          </Button>
-          <p className="mt-1 text-xs text-muted-foreground">{t("bookSoon")}</p>
-        </div>
+        {tenant.bookingConfig.onlineBookingEnabled && (
+          <div>
+            <Button size="lg" asChild>
+              <a href={`/${locale}/barber/${slug}/book`}>{t("bookCta")}</a>
+            </Button>
+          </div>
+        )}
 
         <Card>
           <CardHeader>

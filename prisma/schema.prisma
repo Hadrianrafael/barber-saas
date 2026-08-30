@@ -602,6 +602,9 @@ model Appointment {
   canceledAt  DateTime?
   cancelReason String?
   reminderSentAt DateTime? // set once the pre-appointment reminder goes out
+  // SHA-256 hash of the opaque token handed to a public/chatbot booker so they
+  // can view / cancel / reschedule their own appointment without an account.
+  publicToken String? @unique
   createdById String? // user who created it (null = public/chatbot)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt

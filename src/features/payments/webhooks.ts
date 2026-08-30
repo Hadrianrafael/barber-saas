@@ -53,6 +53,7 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
   const intentId =
     typeof s.payment_intent === "string" ? s.payment_intent : (s.payment_intent?.id ?? null);
 
+  let confirmedAppointmentId: string | null = null;
   await prisma.$transaction(async (tx) => {
     // De-dup on the intent id.
     if (intentId) {
@@ -92,7 +93,23 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
         paidAt: new Date(),
       },
     });
+
+    // A paid public booking is auto-confirmed (idempotent: only PENDING moves).
+    if (appointmentId) {
+      const moved = await tx.appointment.updateMany({
+        where: { id: appointmentId, tenantId, status: "PENDING" },
+        data: { status: "CONFIRMED", confirmedAt: new Date() },
+      });
+      if (moved.count > 0) confirmedAppointmentId = appointmentId;
+    }
   });
+  if (confirmedAppointmentId) {
+    void import("@/worker/queues")
+      .then((m) =>
+        m.enqueueAppointmentNotification(confirmedAppointmentId!, "appointment_confirmation"),
+      )
+      .catch((e) => logger.warn({ err: (e as Error).message }, "connect.confirm_notify_failed"));
+  }
   logger.info({ tenantId, linkId, amountCents }, "connect.checkout.paid");
 }
 
