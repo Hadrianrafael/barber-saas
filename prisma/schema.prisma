@@ -1,0 +1,1023 @@
+// barber-saas — multi-tenant schema
+// Isolation model: single shared schema, every tenant-owned row carries `tenantId`
+// (FK + index). All application queries MUST be scoped by tenant — see
+// src/server/db/tenant.ts and docs/adr/0001-multi-tenancy-model.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum MemberRole {
+  OWNER
+  MANAGER
+  BARBER
+}
+
+enum TenantStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_VACATION
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum ServiceStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELED
+  NO_SHOW
+}
+
+enum AppointmentSource {
+  DASHBOARD
+  PUBLIC_PAGE
+  CHATBOT
+  WHATSAPP
+  IMPORT
+}
+
+enum BlockedTimeKind {
+  BREAK
+  LUNCH
+  TIME_OFF
+  VACATION
+  HOLIDAY
+  OTHER
+}
+
+enum PaymentPurpose {
+  SAAS_SUBSCRIPTION // barbershop pays the platform
+  CLIENT_PAYMENT // a client pays the barbershop (Connect)
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELED
+}
+
+enum PaymentMethodKind {
+  CARD
+  PIX
+  CASH_ON_SITE
+  SUBSCRIPTION_CREDIT
+}
+
+enum PaymentLinkStatus {
+  ACTIVE
+  PAID
+  EXPIRED
+  CANCELED
+}
+
+enum SubscriptionScope {
+  PLATFORM // SaaS plan for a barbershop
+  CLIENT // recurring plan a client buys from a barbershop
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  UNPAID
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum PayoutAccountStatus {
+  NOT_CONNECTED
+  ONBOARDING
+  PENDING_VERIFICATION
+  ENABLED
+  RESTRICTED
+  DISABLED
+}
+
+enum MessageChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  IN_APP
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  BOUNCED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  COMPLETED
+  CANCELED
+  FAILED
+}
+
+enum ConversationChannel {
+  WHATSAPP
+  WEBCHAT
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING_HUMAN
+  HUMAN_HANDLING
+  RESOLVED
+  CLOSED
+}
+
+enum ConversationAgent {
+  AI
+  HUMAN
+}
+
+enum NotificationType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CANCELED
+  APPOINTMENT_RESCHEDULED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  SUBSCRIPTION_UPDATED
+  SYSTEM
+}
+
+enum ConsentChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+}
+
+enum AuditActorType {
+  USER
+  PLATFORM_ADMIN
+  SYSTEM
+  WEBHOOK
+}
+
+// ============================================================================
+// Identity & tenancy
+// ============================================================================
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  locale          String    @default("pt-BR")
+  phone           String?
+  emailVerifiedAt DateTime?
+  isPlatformAdmin Boolean   @default(false) // SUPER_ADMIN realm
+  lastLoginAt     DateTime?
+  disabledAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships   TenantMember[]
+  sessions      Session[]
+  customerLinks Customer[]
+  employeeLinks Employee[]
+
+  emailTokens EmailVerificationToken[]
+  resetTokens PasswordResetToken[]
+
+  auditLogs           AuditLog[]           @relation("AuditActorUser")
+  impersonationsAsAdmin ImpersonationGrant[] @relation("ImpersonationAdmin")
+
+  @@index([isPlatformAdmin])
+}
+
+model Tenant {
+  id       String       @id @default(cuid())
+  slug     String       @unique
+  name     String
+  status   TenantStatus @default(TRIALING)
+  locale   String       @default("pt-BR")
+  timezone String       @default("America/Sao_Paulo")
+  currency String       @default("BRL")
+  country  String       @default("BR")
+
+  // profile / public page
+  logoUrl     String?
+  coverUrl    String?
+  description  String?
+  email        String?
+  phone        String?
+  whatsapp     String?
+  instagram    String?
+  website      String?
+  addressLine1 String?
+  addressLine2 String?
+  city         String?
+  state        String?
+  postalCode   String?
+
+  // booking configuration (JSON — validated in app layer)
+  bookingConfig Json?
+
+  trialEndsAt DateTime?
+  suspendedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members            TenantMember[]
+  employees          Employee[]
+  services           Service[]
+  customers          Customer[]
+  appointments       Appointment[]
+  blockedTimes       BlockedTime[]
+  businessHours      BusinessHour[]
+  holidays           Holiday[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  paymentLinks       PaymentLink[]
+  invoices           Invoice[]
+  payoutAccount      PayoutAccount?
+  campaigns          Campaign[]
+  messages           Message[]
+  messageTemplates   MessageTemplate[]
+  conversations      Conversation[]
+  notifications      Notification[]
+  reviews            Review[]
+  loyaltyAccounts    LoyaltyAccount[]
+  coupons            Coupon[]
+  auditLogs          AuditLog[]
+  contactImports     ContactImport[]
+  featureFlags       TenantFeatureFlag[]
+  impersonations     ImpersonationGrant[]
+
+  @@index([status])
+}
+
+model TenantMember {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      MemberRole @default(BARBER)
+  invitedAt DateTime?
+  acceptedAt DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@index([tenantId, role])
+}
+
+/// Time-boxed grant that lets a platform admin act inside a tenant for support.
+/// No password sharing: the app mints a scoped session referencing this row and
+/// every action is stamped into AuditLog with actorType = PLATFORM_ADMIN.
+model ImpersonationGrant {
+  id        String    @id @default(cuid())
+  tenantId  String
+  adminId   String
+  reason    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  admin  User   @relation("ImpersonationAdmin", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([adminId])
+}
+
+// ============================================================================
+// Sessions & account tokens (opaque server-side sessions — see ADR 0002)
+// ============================================================================
+
+model Session {
+  id             String    @id @default(cuid())
+  // sha256 of the opaque cookie token; the raw token is never stored.
+  tokenHash      String    @unique
+  userId         String
+  // when set, this is a support session acting inside a tenant
+  impersonatedTenantId String?
+  isAdminSession Boolean   @default(false)
+  userAgent      String?
+  ip             String?
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  lastSeenAt     DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// Staff, services, availability
+// ============================================================================
+
+model Employee {
+  id             String         @id @default(cuid())
+  tenantId       String
+  userId         String?
+  name           String
+  email          String?
+  phone          String?
+  photoUrl       String?
+  bio            String?
+  specialties    String[]
+  commissionBps  Int            @default(0) // basis points of service price
+  status         EmployeeStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services     ServiceEmployee[]
+  appointments Appointment[]
+  workHours    BusinessHour[]
+  blockedTimes BlockedTime[]
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, status])
+}
+
+model Service {
+  id            String        @id @default(cuid())
+  tenantId      String
+  name          String
+  description   String?
+  priceCents    Int
+  currency      String        @default("BRL")
+  durationMin   Int
+  bufferMin     Int           @default(0)
+  status        ServiceStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employees    ServiceEmployee[]
+  appointments Appointment[]
+
+  @@index([tenantId, status])
+}
+
+model ServiceEmployee {
+  serviceId  String
+  employeeId String
+
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, employeeId])
+  @@index([employeeId])
+}
+
+/// Weekly recurring working hours. Scope: tenant default when employeeId is null,
+/// otherwise the specific barber's schedule.
+model BusinessHour {
+  id         String  @id @default(cuid())
+  tenantId   String
+  employeeId String?
+  weekday    Int // 0 = Sunday .. 6 = Saturday
+  startMin   Int // minutes from midnight, tenant timezone
+  endMin     Int
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, weekday])
+  @@index([employeeId, weekday])
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  tenantId  String
+  date      DateTime @db.Date
+  name      String
+  isClosed  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+}
+
+model BlockedTime {
+  id         String          @id @default(cuid())
+  tenantId   String
+  employeeId String?
+  kind       BlockedTimeKind @default(OTHER)
+  reason     String?
+  startsAt   DateTime        @db.Timestamptz(3)
+  endsAt     DateTime        @db.Timestamptz(3)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startsAt])
+  @@index([employeeId, startsAt])
+}
+
+// ============================================================================
+// Customers (CRM)
+// ============================================================================
+
+model Customer {
+  id              String         @id @default(cuid())
+  tenantId        String
+  userId          String?
+  name            String
+  email           String?
+  phone           String?
+  whatsapp        String?
+  locale          String         @default("pt-BR")
+  photoUrl        String?
+  birthDate       DateTime?      @db.Date
+  notes           String?
+  preferredEmployeeId String?
+  status          CustomerStatus @default(ACTIVE)
+  lastVisitAt     DateTime?
+  totalSpentCents Int            @default(0)
+  visitsCount     Int            @default(0)
+  source          AppointmentSource @default(DASHBOARD)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+  consents     CommunicationConsent[]
+  payments     Payment[]
+  paymentLinks PaymentLink[]
+  subscriptions Subscription[]
+  conversations Conversation[]
+  reviews      Review[]
+  loyalty      LoyaltyAccount?
+  notifications Notification[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, phone])
+  @@index([tenantId, status])
+  @@index([tenantId, lastVisitAt])
+}
+
+model CommunicationConsent {
+  id         String         @id @default(cuid())
+  customerId String
+  channel    ConsentChannel
+  granted    Boolean        @default(false)
+  source     String? // "import", "public_form", "dashboard", ...
+  grantedAt  DateTime?
+  revokedAt  DateTime?
+  updatedAt  DateTime       @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, channel])
+}
+
+// ============================================================================
+// Appointments
+// ============================================================================
+
+model Appointment {
+  id          String            @id @default(cuid())
+  tenantId    String
+  customerId  String
+  employeeId  String
+  serviceId   String
+  status      AppointmentStatus @default(PENDING)
+  source      AppointmentSource @default(DASHBOARD)
+  startsAt    DateTime          @db.Timestamptz(3)
+  endsAt      DateTime          @db.Timestamptz(3)
+  priceCents  Int
+  currency    String            @default("BRL")
+  notes       String?
+  canceledAt  DateTime?
+  cancelReason String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  payments Payment[]
+
+  // Overlap prevention is enforced by (a) a serializable service-layer check and
+  // (b) a Postgres GiST exclusion constraint added in a raw migration
+  // (see prisma/migrations/*_appointment_no_overlap).
+  @@index([tenantId, startsAt])
+  @@index([employeeId, startsAt])
+  @@index([customerId, startsAt])
+  @@index([tenantId, status])
+}
+
+// ============================================================================
+// Billing — plans, subscriptions, payments, invoices, payout accounts
+// ============================================================================
+
+model Plan {
+  id             String   @id @default(cuid())
+  code           String   @unique // "starter", "pro", "scale"
+  name           String
+  description    String?
+  priceCents     Int
+  currency       String   @default("BRL")
+  interval       String   @default("month") // "month" | "year"
+  stripePriceId  String?
+  trialDays      Int      @default(14)
+  isPublic       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  // hard limits enforced server-side at action time
+  limits         Json // { maxEmployees, maxServices, maxMonthlyAppointments, whatsapp, chatbot, campaigns }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  tenantId           String
+  scope              SubscriptionScope  @default(PLATFORM)
+  planId             String?
+  customerId         String? // set when scope = CLIENT
+  status             SubscriptionStatus @default(TRIALING)
+  provider           String             @default("stripe")
+  providerCustomerId String?
+  providerSubId      String?            @unique
+  priceCents         Int?
+  currency           String             @default("BRL")
+  interval           String             @default("month")
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  gracePeriodEndsAt  DateTime?
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  invoices Invoice[]
+  payments Payment[]
+
+  @@index([tenantId, scope])
+  @@index([status])
+}
+
+model PayoutAccount {
+  id             String              @id @default(cuid())
+  tenantId       String              @unique
+  provider       String              @default("stripe")
+  providerAccountId String?          @unique
+  status         PayoutAccountStatus @default(NOT_CONNECTED)
+  chargesEnabled Boolean             @default(false)
+  payoutsEnabled Boolean             @default(false)
+  requirements   Json?
+  onboardedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model PaymentLink {
+  id             String            @id @default(cuid())
+  tenantId       String
+  customerId     String?
+  appointmentId  String?
+  description    String
+  amountCents    Int
+  currency       String            @default("BRL")
+  status         PaymentLinkStatus @default(ACTIVE)
+  provider       String            @default("stripe")
+  providerObject String? // Stripe Payment Link / Checkout Session id
+  url            String?
+  expiresAt      DateTime?
+  paidAt         DateTime?
+  createdById    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  payments Payment[]
+
+  @@index([tenantId, status])
+}
+
+model Payment {
+  id              String            @id @default(cuid())
+  tenantId        String
+  purpose         PaymentPurpose
+  status          PaymentStatus     @default(REQUIRES_PAYMENT)
+  method          PaymentMethodKind @default(CARD)
+  amountCents     Int
+  currency        String            @default("BRL")
+  platformFeeCents Int              @default(0)
+  netCents        Int?
+  provider        String            @default("stripe")
+  providerIntentId String?          @unique
+  providerChargeId String?
+  refundedCents   Int               @default(0)
+
+  customerId     String?
+  appointmentId  String?
+  paymentLinkId  String?
+  subscriptionId String?
+  invoiceId      String?
+
+  paidAt      DateTime?
+  failedAt    DateTime?
+  failureCode String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  paymentLink  PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoice      Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, purpose, status])
+  @@index([tenantId, createdAt])
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  tenantId          String
+  subscriptionId    String?
+  scope             SubscriptionScope @default(PLATFORM)
+  status            InvoiceStatus @default(DRAFT)
+  amountDueCents    Int
+  amountPaidCents   Int           @default(0)
+  currency          String        @default("BRL")
+  provider          String        @default("stripe")
+  providerInvoiceId String?       @unique
+  hostedUrl         String?
+  pdfUrl            String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  dueAt             DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payments     Payment[]
+
+  @@index([tenantId, status])
+}
+
+/// Provider webhook idempotency + audit. A row is inserted before processing;
+/// the unique(provider, eventId) makes duplicate deliveries a no-op.
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String // "stripe", "stripe_connect", "whatsapp"
+  eventId     String
+  type        String
+  payload     Json
+  status      String    @default("received") // received | processed | failed
+  error       String?
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, eventId])
+  @@index([provider, type])
+}
+
+// ============================================================================
+// Messaging — templates, campaigns, message log, conversations
+// ============================================================================
+
+model MessageTemplate {
+  id        String         @id @default(cuid())
+  tenantId  String?        // null = platform default template
+  key       String // "appointment_confirmation", "reminder", ...
+  channel   MessageChannel
+  locale    String
+  subject   String?
+  body      String
+  isSystem  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key, channel, locale])
+}
+
+model Campaign {
+  id            String         @id @default(cuid())
+  tenantId      String
+  name          String
+  channel       MessageChannel
+  status        CampaignStatus @default(DRAFT)
+  locale        String         @default("pt-BR")
+  subject       String?
+  body          String
+  audience      Json // { type: "all" | "segment" | "import" | "inactive" | ..., filters }
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  totalRecipients Int          @default(0)
+  sentCount     Int            @default(0)
+  failedCount   Int            @default(0)
+  createdById   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([tenantId, status])
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  tenantId       String
+  campaignId     String?
+  conversationId String?
+  customerId     String?
+  channel        MessageChannel
+  direction      MessageDirection @default(OUTBOUND)
+  status         MessageStatus    @default(QUEUED)
+  toAddress      String
+  subject        String?
+  body           String
+  locale         String           @default("pt-BR")
+  provider       String?
+  providerMessageId String?
+  error          String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, channel, status])
+  @@index([campaignId])
+  @@index([conversationId])
+}
+
+model Conversation {
+  id          String              @id @default(cuid())
+  tenantId    String
+  customerId  String?
+  channel     ConversationChannel
+  status      ConversationStatus  @default(OPEN)
+  handledBy   ConversationAgent   @default(AI)
+  locale      String              @default("pt-BR")
+  externalId  String? // WhatsApp wa_id / web session id
+  lastMessageAt DateTime?
+  assignedToId String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  messages ConversationMessage[]
+  msgLog   Message[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, channel])
+}
+
+model ConversationMessage {
+  id             String           @id @default(cuid())
+  conversationId String
+  role           String // "customer" | "assistant" | "agent" | "system" | "tool"
+  content        String
+  toolName       String?
+  toolPayload    Json?
+  createdAt      DateTime         @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ============================================================================
+// Notifications, reviews, loyalty, coupons
+// ============================================================================
+
+model Notification {
+  id         String           @id @default(cuid())
+  tenantId   String
+  userId     String?
+  customerId String?
+  type       NotificationType
+  title      String
+  body       String
+  data       Json?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, userId, readAt])
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  tenantId     String
+  customerId   String?
+  employeeId   String?
+  appointmentId String?  @unique
+  rating       Int // 1..5
+  comment      String?
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, isPublished])
+}
+
+model LoyaltyAccount {
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String   @unique
+  points     Int      @default(0)
+  tier       String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Coupon {
+  id            String    @id @default(cuid())
+  tenantId      String
+  code          String
+  description   String?
+  percentOff    Int?
+  amountOffCents Int?
+  currency      String    @default("BRL")
+  maxRedemptions Int?
+  redeemedCount Int       @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+}
+
+// ============================================================================
+// Contact import
+// ============================================================================
+
+model ContactImport {
+  id            String   @id @default(cuid())
+  tenantId      String
+  fileName      String
+  status        String   @default("pending") // pending | previewed | importing | completed | failed
+  totalRows     Int      @default(0)
+  validRows     Int      @default(0)
+  duplicateRows Int      @default(0)
+  errorRows     Int      @default(0)
+  importedRows  Int      @default(0)
+  report        Json?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+// ============================================================================
+// Feature flags & audit
+// ============================================================================
+
+model TenantFeatureFlag {
+  tenantId  String
+  flag      String
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, flag])
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  tenantId   String?
+  actorType  AuditActorType @default(USER)
+  actorId    String?
+  actorLabel String?
+  action     String // "customer.deleted", "billing.plan_changed", ...
+  targetType String?
+  targetId   String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation("AuditActorUser", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([actorId])
+  @@index([action])
+}

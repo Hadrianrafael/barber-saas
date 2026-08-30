@@ -1,0 +1,103 @@
+{
+  "common": {
+    "appName": "Barber SaaS",
+    "loading": "Carregando…",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "search": "Buscar",
+    "empty": "Nada por aqui ainda.",
+    "error": "Algo deu errado. Tente novamente.",
+    "required": "Campo obrigatório",
+    "languageName": "Português"
+  },
+  "languageSwitcher": {
+    "label": "Idioma",
+    "pt-BR": "Português",
+    "en": "English",
+    "es": "Español"
+  },
+  "marketing": {
+    "heroTitle": "A plataforma completa para a sua barbearia",
+    "heroSubtitle": "Agenda, clientes, pagamentos, assinaturas e comunicação — em um só lugar, em três idiomas.",
+    "ctaPrimary": "Começar agora",
+    "ctaSecondary": "Ver planos",
+    "featuresTitle": "Tudo o que a sua barbearia precisa"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "agenda": "Agenda",
+    "clients": "Clientes",
+    "team": "Equipe",
+    "services": "Serviços",
+    "finance": "Financeiro",
+    "campaigns": "Campanhas",
+    "conversations": "Conversas",
+    "settings": "Configurações",
+    "logout": "Sair"
+  },
+  "auth": {
+    "signInTitle": "Entrar",
+    "signInSubtitle": "Acesse o painel da sua barbearia",
+    "signUpTitle": "Criar conta",
+    "signUpSubtitle": "Comece a organizar a sua barbearia hoje",
+    "email": "E-mail",
+    "password": "Senha",
+    "name": "Nome",
+    "confirmPassword": "Confirmar senha",
+    "forgotPassword": "Esqueci minha senha",
+    "signInCta": "Entrar",
+    "signUpCta": "Criar conta",
+    "noAccount": "Não tem uma conta?",
+    "hasAccount": "Já tem uma conta?",
+    "signUpLink": "Criar conta",
+    "signInLink": "Entrar",
+    "logout": "Sair",
+    "forgotTitle": "Recuperar senha",
+    "forgotSubtitle": "Enviaremos um link para redefinir a sua senha",
+    "forgotCta": "Enviar link",
+    "forgotDone": "Se o e-mail existir, você receberá as instruções em instantes.",
+    "resetTitle": "Definir nova senha",
+    "resetCta": "Salvar nova senha",
+    "resetDone": "Senha atualizada. Você já pode entrar.",
+    "verifyTitle": "Verificação de e-mail",
+    "verifyPending": "Enviamos um link de confirmação para {email}. Verifique a sua caixa de entrada.",
+    "verifySuccess": "E-mail confirmado com sucesso.",
+    "verifyInvalid": "Este link é inválido ou expirou.",
+    "verifyResend": "Reenviar e-mail de confirmação",
+    "errors": {
+      "invalidCredentials": "E-mail ou senha incorretos.",
+      "emailTaken": "Já existe uma conta com este e-mail.",
+      "emailNotVerified": "Confirme o seu e-mail antes de entrar.",
+      "weakPassword": "A senha deve ter ao menos 10 caracteres, com letras e números.",
+      "passwordMismatch": "As senhas não coincidem.",
+      "rateLimited": "Muitas tentativas. Aguarde um momento e tente de novo.",
+      "accountDisabled": "Esta conta está desativada."
+    }
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo, {name}",
+    "todayAppointments": "Agendamentos de hoje",
+    "revenue": "Faturamento",
+    "clients": "Clientes",
+    "team": "Profissionais",
+    "upcoming": "Próximos horários",
+    "noData": "Sem dados para o período."
+  },
+  "admin": {
+    "title": "Administração da plataforma",
+    "tenants": "Barbearias",
+    "subscriptions": "Assinaturas",
+    "revenue": "Receita da plataforma",
+    "signOut": "Sair"
+  },
+  "validation": {
+    "email": "Informe um e-mail válido.",
+    "min": "Mínimo de {count} caracteres.",
+    "max": "Máximo de {count} caracteres."
+  }
+}

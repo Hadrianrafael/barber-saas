@@ -1,0 +1,103 @@
+{
+  "common": {
+    "appName": "Barber SaaS",
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "search": "Buscar",
+    "empty": "Aún no hay nada aquí.",
+    "error": "Algo salió mal. Inténtalo de nuevo.",
+    "required": "Campo obligatorio",
+    "languageName": "Español"
+  },
+  "languageSwitcher": {
+    "label": "Idioma",
+    "pt-BR": "Português",
+    "en": "English",
+    "es": "Español"
+  },
+  "marketing": {
+    "heroTitle": "La plataforma completa para tu barbería",
+    "heroSubtitle": "Agenda, clientes, pagos, suscripciones y comunicación — en un solo lugar, en tres idiomas.",
+    "ctaPrimary": "Empezar ahora",
+    "ctaSecondary": "Ver planes",
+    "featuresTitle": "Todo lo que tu barbería necesita"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "agenda": "Agenda",
+    "clients": "Clientes",
+    "team": "Equipo",
+    "services": "Servicios",
+    "finance": "Finanzas",
+    "campaigns": "Campañas",
+    "conversations": "Conversaciones",
+    "settings": "Configuración",
+    "logout": "Salir"
+  },
+  "auth": {
+    "signInTitle": "Iniciar sesión",
+    "signInSubtitle": "Accede al panel de tu barbería",
+    "signUpTitle": "Crear cuenta",
+    "signUpSubtitle": "Empieza a organizar tu barbería hoy",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "Olvidé mi contraseña",
+    "signInCta": "Iniciar sesión",
+    "signUpCta": "Crear cuenta",
+    "noAccount": "¿No tienes una cuenta?",
+    "hasAccount": "¿Ya tienes una cuenta?",
+    "signUpLink": "Crear cuenta",
+    "signInLink": "Iniciar sesión",
+    "logout": "Salir",
+    "forgotTitle": "Recuperar contraseña",
+    "forgotSubtitle": "Te enviaremos un enlace para restablecer tu contraseña",
+    "forgotCta": "Enviar enlace",
+    "forgotDone": "Si el correo existe, recibirás instrucciones en breve.",
+    "resetTitle": "Definir nueva contraseña",
+    "resetCta": "Guardar nueva contraseña",
+    "resetDone": "Contraseña actualizada. Ya puedes iniciar sesión.",
+    "verifyTitle": "Verificación de correo",
+    "verifyPending": "Enviamos un enlace de confirmación a {email}. Revisa tu bandeja de entrada.",
+    "verifySuccess": "Correo confirmado con éxito.",
+    "verifyInvalid": "Este enlace no es válido o ha caducado.",
+    "verifyResend": "Reenviar correo de confirmación",
+    "errors": {
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailTaken": "Ya existe una cuenta con este correo.",
+      "emailNotVerified": "Confirma tu correo antes de iniciar sesión.",
+      "weakPassword": "La contraseña debe tener al menos 10 caracteres, con letras y números.",
+      "passwordMismatch": "Las contraseñas no coinciden.",
+      "rateLimited": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+      "accountDisabled": "Esta cuenta está desactivada."
+    }
+  },
+  "dashboard": {
+    "welcome": "Bienvenido, {name}",
+    "todayAppointments": "Citas de hoy",
+    "revenue": "Facturación",
+    "clients": "Clientes",
+    "team": "Profesionales",
+    "upcoming": "Próximos turnos",
+    "noData": "Sin datos para el período."
+  },
+  "admin": {
+    "title": "Administración de la plataforma",
+    "tenants": "Barberías",
+    "subscriptions": "Suscripciones",
+    "revenue": "Ingresos de la plataforma",
+    "signOut": "Salir"
+  },
+  "validation": {
+    "email": "Introduce un correo válido.",
+    "min": "Mínimo {count} caracteres.",
+    "max": "Máximo {count} caracteres."
+  }
+}

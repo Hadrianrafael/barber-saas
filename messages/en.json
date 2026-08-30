@@ -1,0 +1,103 @@
+{
+  "common": {
+    "appName": "Barber SaaS",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "empty": "Nothing here yet.",
+    "error": "Something went wrong. Please try again.",
+    "required": "Required field",
+    "languageName": "English"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "pt-BR": "Português",
+    "en": "English",
+    "es": "Español"
+  },
+  "marketing": {
+    "heroTitle": "The complete platform for your barbershop",
+    "heroSubtitle": "Scheduling, clients, payments, subscriptions and messaging — in one place, in three languages.",
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "See pricing",
+    "featuresTitle": "Everything your barbershop needs"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "agenda": "Schedule",
+    "clients": "Clients",
+    "team": "Team",
+    "services": "Services",
+    "finance": "Finance",
+    "campaigns": "Campaigns",
+    "conversations": "Conversations",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
+  "auth": {
+    "signInTitle": "Sign in",
+    "signInSubtitle": "Access your barbershop dashboard",
+    "signUpTitle": "Create account",
+    "signUpSubtitle": "Start organizing your barbershop today",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password",
+    "signInCta": "Sign in",
+    "signUpCta": "Create account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUpLink": "Create account",
+    "signInLink": "Sign in",
+    "logout": "Sign out",
+    "forgotTitle": "Reset password",
+    "forgotSubtitle": "We'll email you a link to reset your password",
+    "forgotCta": "Send link",
+    "forgotDone": "If the email exists, you'll receive instructions shortly.",
+    "resetTitle": "Set a new password",
+    "resetCta": "Save new password",
+    "resetDone": "Password updated. You can sign in now.",
+    "verifyTitle": "Email verification",
+    "verifyPending": "We sent a confirmation link to {email}. Check your inbox.",
+    "verifySuccess": "Email confirmed successfully.",
+    "verifyInvalid": "This link is invalid or has expired.",
+    "verifyResend": "Resend confirmation email",
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailTaken": "An account with this email already exists.",
+      "emailNotVerified": "Please confirm your email before signing in.",
+      "weakPassword": "Password must be at least 10 characters, with letters and numbers.",
+      "passwordMismatch": "Passwords do not match.",
+      "rateLimited": "Too many attempts. Please wait a moment and try again.",
+      "accountDisabled": "This account is disabled."
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}",
+    "todayAppointments": "Today's appointments",
+    "revenue": "Revenue",
+    "clients": "Clients",
+    "team": "Staff",
+    "upcoming": "Upcoming slots",
+    "noData": "No data for this period."
+  },
+  "admin": {
+    "title": "Platform administration",
+    "tenants": "Barbershops",
+    "subscriptions": "Subscriptions",
+    "revenue": "Platform revenue",
+    "signOut": "Sign out"
+  },
+  "validation": {
+    "email": "Enter a valid email.",
+    "min": "Minimum {count} characters.",
+    "max": "Maximum {count} characters."
+  }
+}
