@@ -212,7 +212,18 @@
       "noFile": "Select a file.",
       "tooLarge": "File over 4 MB.",
       "badType": "Unsupported format."
-    }
+    },
+    "tabChatbot": "Chatbot",
+    "chatbotEnabled": "Enable automatic AI replies",
+    "chatbotEnabledHint": "With AI off, chat messages go straight to the human queue. Requires the API key to be configured.",
+    "chatbotName": "Display name",
+    "chatbotGreetingPt": "Greeting (Portuguese)",
+    "chatbotGreetingEn": "Greeting (English)",
+    "chatbotGreetingEs": "Greeting (Spanish)",
+    "chatbotInstructions": "AI instructions",
+    "chatbotInstructionsHint": "Tone of voice and shop notes. Does not change what the AI can do.",
+    "chatbotHandoffKeywords": "Handoff keywords",
+    "chatbotHandoffKeywordsHint": "Comma-separated. A message containing one goes straight to a human."
   },
   "publicPage": {
     "bookCta": "Book now",
@@ -822,6 +833,57 @@
       "APPOINTMENT_NOT_FOUND": "Booking not found.",
       "INVALID_TRANSITION": "This booking can no longer be changed.",
       "VALIDATION": "Couldn't complete with the details provided."
+    }
+  },
+  "chatbot": {
+    "launcher": "Chat with us",
+    "close": "Close",
+    "title": "Support",
+    "humanMode": "human support",
+    "thinking": "typing…",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "rateLimited": "Too many messages. Please wait a moment."
+  },
+  "conversations": {
+    "title": "Conversations",
+    "subtitle": "Chat and WhatsApp support — AI and human.",
+    "all": "All",
+    "empty": "No conversations yet.",
+    "anonymous": "Visitor",
+    "messages": "messages",
+    "prev": "Previous",
+    "next": "Next",
+    "backToList": "Back to conversations",
+    "takeOver": "Take over",
+    "returnToAi": "Return to AI",
+    "waitingHuman": "waiting for an agent",
+    "showTools": "show tool calls",
+    "replyPlaceholder": "Write a reply…",
+    "sendReply": "Send reply",
+    "replyFailed": "Couldn't send.",
+    "takeOverToReply": "Take over the conversation to reply.",
+    "status": {
+      "OPEN": "Open",
+      "PENDING_HUMAN": "Waiting for human",
+      "HUMAN_HANDLING": "With agent",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "channel": {
+      "WHATSAPP": "WhatsApp",
+      "WEBCHAT": "Web chat"
+    },
+    "handled": {
+      "AI": "AI",
+      "HUMAN": "Human"
+    },
+    "role": {
+      "customer": "Customer",
+      "assistant": "AI",
+      "agent": "Agent",
+      "tool": "Tool",
+      "system": "System"
     }
   }
 }

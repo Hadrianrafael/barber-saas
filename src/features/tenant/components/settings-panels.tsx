@@ -18,9 +18,11 @@ import {
   addHolidayAction,
   removeHolidayAction,
   updateBookingConfigAction,
+  updateChatbotConfigAction,
   uploadImageAction,
   type SettingsState,
 } from "../actions";
+import type { ChatbotConfig } from "@/features/chatbot/config";
 
 const initial: SettingsState = { ok: false };
 const WEEKDAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -365,6 +367,86 @@ export function BookingConfigPanel({
         />
         {t("requireEmployeeSelection")}
       </label>
+      <SubmitButton>{t("save")}</SubmitButton>
+    </form>
+  );
+}
+
+export function ChatbotPanel({ config }: { config: ChatbotConfig }) {
+  const t = useTranslations("settings");
+  const locale = useLocale();
+  const [state, action] = useActionState(updateChatbotConfigAction, initial);
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="locale" value={locale} />
+      <Saved state={state} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="enabled" defaultChecked={config.enabled} />
+        {t("chatbotEnabled")}
+      </label>
+      <p className="text-xs text-muted-foreground">{t("chatbotEnabledHint")}</p>
+
+      <div>
+        <Label htmlFor="cb-name">{t("chatbotName")}</Label>
+        <Input id="cb-name" name="displayName" defaultValue={config.displayName} maxLength={40} />
+      </div>
+
+      <div className="grid gap-3">
+        <div>
+          <Label htmlFor="cb-g-pt">{t("chatbotGreetingPt")}</Label>
+          <Textarea
+            id="cb-g-pt"
+            name="greeting.pt-BR"
+            rows={2}
+            maxLength={400}
+            defaultValue={config.greeting["pt-BR"]}
+          />
+        </div>
+        <div>
+          <Label htmlFor="cb-g-en">{t("chatbotGreetingEn")}</Label>
+          <Textarea
+            id="cb-g-en"
+            name="greeting.en"
+            rows={2}
+            maxLength={400}
+            defaultValue={config.greeting.en}
+          />
+        </div>
+        <div>
+          <Label htmlFor="cb-g-es">{t("chatbotGreetingEs")}</Label>
+          <Textarea
+            id="cb-g-es"
+            name="greeting.es"
+            rows={2}
+            maxLength={400}
+            defaultValue={config.greeting.es}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="cb-inst">{t("chatbotInstructions")}</Label>
+        <Textarea
+          id="cb-inst"
+          name="instructions"
+          rows={4}
+          maxLength={2000}
+          defaultValue={config.instructions}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">{t("chatbotInstructionsHint")}</p>
+      </div>
+
+      <div>
+        <Label htmlFor="cb-kw">{t("chatbotHandoffKeywords")}</Label>
+        <Input
+          id="cb-kw"
+          name="handoffKeywords"
+          defaultValue={config.handoffKeywords.join(", ")}
+          placeholder="reclamação, gerente, urgente"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">{t("chatbotHandoffKeywordsHint")}</p>
+      </div>
+
       <SubmitButton>{t("save")}</SubmitButton>
     </form>
   );

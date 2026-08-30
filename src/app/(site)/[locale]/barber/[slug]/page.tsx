@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ChatWidget } from "@/features/chatbot/components/chat-widget";
 
 export const dynamic = "force-dynamic";
 
@@ -224,6 +225,8 @@ export default async function BarberPublicPage({
           </Card>
         )}
       </div>
+
+      <ChatWidget slug={slug} />
     </div>
   );
 }

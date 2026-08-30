@@ -8,20 +8,24 @@ import {
   HoursPanel,
   HolidaysPanel,
   BookingConfigPanel,
+  ChatbotPanel,
   BrandingPanel,
   type TenantData,
 } from "./settings-panels";
+import type { ChatbotConfig } from "@/features/chatbot/config";
 
 export function SettingsTabs({
   tenant,
   hours,
   holidays,
   bookingConfig,
+  chatbotConfig,
 }: {
   tenant: TenantData;
   hours: { weekday: number; startMin: number; endMin: number }[];
   holidays: { id: string; date: string; name: string; isClosed: boolean }[];
   bookingConfig: React.ComponentProps<typeof BookingConfigPanel>["config"];
+  chatbotConfig: ChatbotConfig;
 }) {
   const t = useTranslations("settings");
   return (
@@ -33,6 +37,7 @@ export function SettingsTabs({
         <TabsTrigger value="hours">{t("tabHours")}</TabsTrigger>
         <TabsTrigger value="holidays">{t("tabHolidays")}</TabsTrigger>
         <TabsTrigger value="booking">{t("tabBooking")}</TabsTrigger>
+        <TabsTrigger value="chatbot">{t("tabChatbot")}</TabsTrigger>
       </TabsList>
       <TabsContent value="profile">
         <ProfilePanel tenant={tenant} />
@@ -51,6 +56,9 @@ export function SettingsTabs({
       </TabsContent>
       <TabsContent value="booking">
         <BookingConfigPanel config={bookingConfig} />
+      </TabsContent>
+      <TabsContent value="chatbot">
+        <ChatbotPanel config={chatbotConfig} />
       </TabsContent>
     </Tabs>
   );

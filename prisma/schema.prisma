@@ -270,6 +270,8 @@ model Tenant {
 
   // booking configuration (JSON — validated in app layer)
   bookingConfig Json?
+  // chatbot configuration (JSON — validated in app layer; see features/chatbot/config)
+  chatbotConfig Json?
 
   trialEndsAt      DateTime?
   suspendedAt      DateTime?

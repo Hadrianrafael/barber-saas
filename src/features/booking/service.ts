@@ -11,6 +11,7 @@ import {
   cancelAppointment,
 } from "@/features/scheduling/appointments";
 import { SchedulingError } from "@/features/scheduling/errors";
+import { resolveOrCreateCustomer, CustomerBlockedError } from "@/features/customers/resolve";
 import type { BookingSubmitInput } from "./schema";
 
 const PUBLIC_ACTOR = { userId: null as string | null, label: "public-booking" };
@@ -138,47 +139,6 @@ export function getPublicSlots(args: {
   return getAvailableSlots(args);
 }
 
-/**
- * Dedupe against the tenant's existing customers (the schema enforces unique
- * email / phone per tenant), otherwise create a fresh record tagged as a
- * public-page origin. Never flips consent on.
- */
-async function resolveOrCreateCustomer(
-  tenantId: string,
-  input: { name: string; email: string | null; phone: string | null; locale: string },
-): Promise<string> {
-  if (input.email || input.phone) {
-    const existing = await prisma.customer.findFirst({
-      where: {
-        tenantId,
-        OR: [
-          ...(input.email ? [{ email: input.email }] : []),
-          ...(input.phone ? [{ phone: input.phone }] : []),
-        ],
-      },
-      select: { id: true, status: true },
-    });
-    if (existing) {
-      if (existing.status === "BLOCKED")
-        throw new SchedulingError("VALIDATION", "customer blocked");
-      return existing.id;
-    }
-  }
-  const created = await prisma.customer.create({
-    data: {
-      tenantId,
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      whatsapp: input.phone,
-      locale: input.locale,
-      source: "PUBLIC_PAGE",
-    },
-    select: { id: true },
-  });
-  return created.id;
-}
-
 /** Record an explicit WhatsApp opt-in from the booking form (double opt-in style). */
 async function recordWhatsappOptIn(customerId: string) {
   await prisma.communicationConsent
@@ -244,12 +204,19 @@ export async function createPublicBooking(
     employeeId = match.employeeId;
   }
 
-  const customerId = await resolveOrCreateCustomer(ctx.tenant.id, {
-    name: input.name,
-    email: input.email || null,
-    phone: input.phone || null,
-    locale: input.locale,
-  });
+  let customerId: string;
+  try {
+    customerId = await resolveOrCreateCustomer(ctx.tenant.id, {
+      name: input.name,
+      email: input.email || null,
+      phone: input.phone || null,
+      locale: input.locale,
+      source: "PUBLIC_PAGE",
+    });
+  } catch (e) {
+    if (e instanceof CustomerBlockedError) throw new SchedulingError("VALIDATION", "customer blocked");
+    throw e;
+  }
   if (input.whatsappOptIn && input.phone) await recordWhatsappOptIn(customerId);
 
   const appt = await createAppointment({

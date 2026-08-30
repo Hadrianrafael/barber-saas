@@ -3,6 +3,7 @@ import { prisma } from "@/server/db/client";
 import { getCountry } from "@/lib/regions";
 import { logger } from "@/lib/logger";
 import { DEFAULT_BOOKING_CONFIG, type BookingConfig } from "./booking-config";
+import type { ChatbotConfig } from "@/features/chatbot/config";
 import { generateUniqueSlug } from "./slug";
 import type { CreateTenantInput, TenantProfileInput, BusinessHoursInput } from "./schema";
 
@@ -208,6 +209,27 @@ export async function updateBookingConfig(tenantId: string, config: BookingConfi
         actorId: actor.userId,
         actorLabel: actor.label,
         action: "tenant.booking_config_updated",
+        targetType: "Tenant",
+        targetId: tenantId,
+        ip: actor.ip ?? null,
+      },
+    }),
+  ]);
+}
+
+export async function updateChatbotConfig(tenantId: string, config: ChatbotConfig, actor: Actor) {
+  await prisma.$transaction([
+    prisma.tenant.update({
+      where: { id: tenantId },
+      data: { chatbotConfig: config },
+    }),
+    prisma.auditLog.create({
+      data: {
+        tenantId,
+        actorType: "USER",
+        actorId: actor.userId,
+        actorLabel: actor.label,
+        action: "tenant.chatbot_config_updated",
         targetType: "Tenant",
         targetId: tenantId,
         ip: actor.ip ?? null,

@@ -212,7 +212,18 @@
       "noFile": "Selecciona un archivo.",
       "tooLarge": "Archivo mayor de 4 MB.",
       "badType": "Formato no admitido."
-    }
+    },
+    "tabChatbot": "Chatbot",
+    "chatbotEnabled": "Activar respuestas automáticas por IA",
+    "chatbotEnabledHint": "Con la IA desactivada, los mensajes del chat pasan directamente a la cola humana. Requiere la clave de API configurada.",
+    "chatbotName": "Nombre visible",
+    "chatbotGreetingPt": "Saludo (Portugués)",
+    "chatbotGreetingEn": "Saludo (Inglés)",
+    "chatbotGreetingEs": "Saludo (Español)",
+    "chatbotInstructions": "Instrucciones para la IA",
+    "chatbotInstructionsHint": "Tono de voz y notas de la barbería. No cambia lo que la IA puede hacer.",
+    "chatbotHandoffKeywords": "Palabras que derivan a un humano",
+    "chatbotHandoffKeywordsHint": "Separadas por comas. Si el mensaje contiene una, pasa directo a un humano."
   },
   "publicPage": {
     "bookCta": "Reservar",
@@ -822,6 +833,57 @@
       "APPOINTMENT_NOT_FOUND": "Reserva no encontrada.",
       "INVALID_TRANSITION": "Esta reserva ya no se puede modificar.",
       "VALIDATION": "No se pudo completar con estos datos."
+    }
+  },
+  "chatbot": {
+    "launcher": "Escríbenos",
+    "close": "Cerrar",
+    "title": "Atención",
+    "humanMode": "atención humana",
+    "thinking": "escribiendo…",
+    "placeholder": "Escribe tu mensaje…",
+    "send": "Enviar",
+    "rateLimited": "Demasiados mensajes. Espera un momento."
+  },
+  "conversations": {
+    "title": "Conversaciones",
+    "subtitle": "Atención por chat y WhatsApp — IA y humano.",
+    "all": "Todas",
+    "empty": "Aún no hay conversaciones.",
+    "anonymous": "Visitante",
+    "messages": "mensajes",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "backToList": "Volver a conversaciones",
+    "takeOver": "Tomar la conversación",
+    "returnToAi": "Devolver a la IA",
+    "waitingHuman": "esperando a un agente",
+    "showTools": "mostrar llamadas de herramienta",
+    "replyPlaceholder": "Escribe la respuesta…",
+    "sendReply": "Enviar respuesta",
+    "replyFailed": "No se pudo enviar.",
+    "takeOverToReply": "Toma la conversación para responder.",
+    "status": {
+      "OPEN": "Abierta",
+      "PENDING_HUMAN": "Esperando humano",
+      "HUMAN_HANDLING": "Con agente",
+      "RESOLVED": "Resuelta",
+      "CLOSED": "Cerrada"
+    },
+    "channel": {
+      "WHATSAPP": "WhatsApp",
+      "WEBCHAT": "Chat del sitio"
+    },
+    "handled": {
+      "AI": "IA",
+      "HUMAN": "Humano"
+    },
+    "role": {
+      "customer": "Cliente",
+      "assistant": "IA",
+      "agent": "Agente",
+      "tool": "Herramienta",
+      "system": "Sistema"
     }
   }
 }

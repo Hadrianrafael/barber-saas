@@ -13,10 +13,12 @@ import {
   holidaySchema,
 } from "./schema";
 import { bookingConfigSchema } from "./booking-config";
+import { chatbotConfigSchema } from "@/features/chatbot/config";
 import {
   updateTenantProfile,
   updateTenantRegional,
   updateBookingConfig,
+  updateChatbotConfig,
   replaceBusinessHours,
   addHoliday,
   removeHoliday,
@@ -134,6 +136,32 @@ export async function updateBookingConfigAction(
   });
   if (!parsed.success) return zerr(parsed.error);
   await updateBookingConfig(ctx.tenantId, parsed.data, await actorFrom(ctx));
+  revalidate(String(raw.locale ?? "pt-BR"));
+  return OK;
+}
+
+export async function updateChatbotConfigAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const ctx = await requireTenantContext({ permission: "tenant.settings.write" });
+  const raw = Object.fromEntries(formData);
+  const parsed = chatbotConfigSchema.safeParse({
+    enabled: raw.enabled === "on" || raw.enabled === "true",
+    displayName: String(raw.displayName ?? "").trim() || "Assistente",
+    greeting: {
+      "pt-BR": String(raw["greeting.pt-BR"] ?? ""),
+      en: String(raw["greeting.en"] ?? ""),
+      es: String(raw["greeting.es"] ?? ""),
+    },
+    instructions: String(raw.instructions ?? ""),
+    handoffKeywords: String(raw.handoffKeywords ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  });
+  if (!parsed.success) return zerr(parsed.error);
+  await updateChatbotConfig(ctx.tenantId, parsed.data, await actorFrom(ctx));
   revalidate(String(raw.locale ?? "pt-BR"));
   return OK;
 }
