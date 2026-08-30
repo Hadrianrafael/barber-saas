@@ -27,6 +27,7 @@ export type Permission =
   | "customer.read"
   | "customer.write"
   | "customer.delete"
+  | "employee.self.write" // a barber editing their own profile / requesting time off
   | "appointment.read"
   | "appointment.write"
   | "appointment.manageAll" // act on any barber's agenda, not just your own
@@ -54,6 +55,7 @@ const OWNER_PERMS: Permission[] = [
   "customer.read",
   "customer.write",
   "customer.delete",
+  "employee.self.write",
   "appointment.read",
   "appointment.write",
   "appointment.manageAll",
@@ -79,6 +81,7 @@ const MANAGER_PERMS: Permission[] = [
   "customer.read",
   "customer.write",
   "customer.delete",
+  "employee.self.write",
   "appointment.read",
   "appointment.write",
   "appointment.manageAll",
@@ -95,6 +98,7 @@ const BARBER_PERMS: Permission[] = [
   "tenant.settings.read",
   "service.read",
   "employee.read",
+  "employee.self.write", // own profile fields + own time-off only
   "customer.read",
   "customer.write",
   "appointment.read",

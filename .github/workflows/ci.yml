@@ -36,6 +36,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
       AUTH_SECRET: ci-only-secret-value-not-used-anywhere-else
       APP_URL: http://localhost:3000
+      RUN_DB_TESTS: "1"
 
     steps:
       - uses: actions/checkout@v4

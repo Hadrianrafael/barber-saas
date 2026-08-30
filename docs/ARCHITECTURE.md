@@ -87,6 +87,33 @@ login screen and in settings, persisted in the `BARBER_LOCALE` cookie and on the
   reviews in all three languages. The booking flow itself is Slice 9 (the
   "Agendar" button is present but disabled).
 
+## Scheduling (Slice 3)
+
+- **Team** (`/[locale]/team`) — barber CRUD (`OWNER`/`MANAGER`), per-barber
+  weekly work hours + one daily break, time off / vacation (`BlockedTime`),
+  commission (% via `commissionBps` or fixed via `commissionFixedCents`).
+  Deactivating a barber flips `Employee.status` only — appointment history
+  stays. `BARBER` sees a read-only list plus a self-service profile
+  (`employee.self.write`: bio / phone / photo / specialties + own time off).
+- **Services** (`/[locale]/services`) — CRUD with price / currency / duration /
+  buffer. Booking an `ARCHIVED` service is refused. Delete falls back to archive
+  when the service has appointments.
+- **Agenda** (`/[locale]/agenda`) — day / week / month, filtered by barber and
+  status. Status lifecycle
+  `PENDING → CONFIRMED → IN_PROGRESS → COMPLETED` + `CANCELED` / `NO_SHOW`.
+  New-appointment dialog: service → barber → date → slot (from
+  `getAvailableSlots`) → existing customer search or walk-in create.
+- **Domain** — `src/features/scheduling/` is the reusable core (`getAvailableSlots`,
+  `createAppointment`, `reschedule/cancel/confirm/start/complete/markNoShow`).
+  Booking rules never live in components; the public page (Slice 9) and chatbot
+  (Slice 10) call this same domain. Conflict prevention is three-layered
+  (availability check → SERIALIZABLE re-check → `btree_gist` exclusion
+  constraint) and concurrency-tested. All instants are `timestamptz`, computed
+  and rendered in `Tenant.timezone`. See **ADR 0005**.
+- **Owner dashboard** (`/[locale]/dashboard`) — today's appointments, upcoming,
+  barbers working today, an open-slots estimate, cancellations and no-shows, all
+  windowed in the tenant timezone (`src/features/dashboard/service.ts`).
+
 ## Integrations (all env-gated, degrade cleanly, never simulated)
 
 | Concern | Interface | Active driver | Fallback when unconfigured |

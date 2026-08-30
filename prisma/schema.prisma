@@ -51,9 +51,15 @@ enum ServiceStatus {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  IN_PROGRESS
   COMPLETED
   CANCELED
   NO_SHOW
+}
+
+enum CommissionType {
+  PERCENT // commissionBps applies
+  FIXED // commissionFixedCents applies
 }
 
 enum AppointmentSource {
@@ -392,19 +398,22 @@ model PasswordResetToken {
 // ============================================================================
 
 model Employee {
-  id             String         @id @default(cuid())
-  tenantId       String
-  userId         String?
-  name           String
-  email          String?
-  phone          String?
-  photoUrl       String?
-  bio            String?
-  specialties    String[]
-  commissionBps  Int            @default(0) // basis points of service price
-  status         EmployeeStatus @default(ACTIVE)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  tenantId             String
+  userId               String?
+  name                 String
+  title                String? // job title / cargo (display only; not RBAC)
+  email                String?
+  phone                String?
+  photoUrl             String?
+  bio                  String?
+  specialties          String[]
+  commissionType       CommissionType @default(PERCENT)
+  commissionBps        Int            @default(0) // basis points of service price (PERCENT)
+  commissionFixedCents Int            @default(0) // per-service fixed amount (FIXED)
+  status               EmployeeStatus @default(ACTIVE)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -451,13 +460,15 @@ model ServiceEmployee {
 /// Weekly recurring working hours. Scope: tenant default when employeeId is null,
 /// otherwise the specific barber's schedule.
 model BusinessHour {
-  id         String  @id @default(cuid())
-  tenantId   String
-  employeeId String?
-  weekday    Int // 0 = Sunday .. 6 = Saturday
-  startMin   Int // minutes from midnight, tenant timezone
-  endMin     Int
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  employeeId    String?
+  weekday       Int // 0 = Sunday .. 6 = Saturday
+  startMin      Int // minutes from midnight, tenant timezone
+  endMin        Int
+  breakStartMin Int? // optional single daily break (lunch / interval)
+  breakEndMin   Int?
+  createdAt     DateTime @default(now())
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -569,11 +580,21 @@ model Appointment {
   source      AppointmentSource @default(DASHBOARD)
   startsAt    DateTime          @db.Timestamptz(3)
   endsAt      DateTime          @db.Timestamptz(3)
+  // Snapshot of the service at booking time — later edits to the Service must
+  // never rewrite historical appointments.
+  serviceName String
+  durationMin Int
+  bufferMin   Int               @default(0)
   priceCents  Int
   currency    String            @default("BRL")
   notes       String?
+  confirmedAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  noShowAt    DateTime?
   canceledAt  DateTime?
   cancelReason String?
+  createdById String? // user who created it (null = public/chatbot)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
