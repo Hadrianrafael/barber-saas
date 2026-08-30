@@ -21,6 +21,23 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "10mb" },
   },
   async headers() {
+    const isProd = process.env.NODE_ENV === "production";
+    // Baseline CSP. `'unsafe-inline'` for scripts is still required by Next's
+    // bootstrap without a nonce-injection layer (a nonce CSP is a follow-up).
+    const csp = [
+      "default-src 'self'",
+      "img-src 'self' data: blob: https:",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "font-src 'self' data:",
+      "connect-src 'self' https://api.anthropic.com https://api.stripe.com https://graph.facebook.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "object-src 'none'",
+    ].join("; ");
+
     return [
       {
         source: "/:path*",
@@ -30,8 +47,17 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(), geolocation=(), payment=(self)",
           },
+          { key: "Content-Security-Policy", value: csp },
+          ...(isProd
+            ? [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=31536000; includeSubDomains; preload",
+                },
+              ]
+            : []),
         ],
       },
     ];

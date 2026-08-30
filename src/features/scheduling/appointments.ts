@@ -373,7 +373,10 @@ async function transition(
     void import("@/features/loyalty/service")
       .then((m) => m.earnForCompletedAppointment(tenantId, updated!.id))
       .catch((e) =>
-        logger.warn({ err: (e as Error).message, appointmentId: updated!.id }, "loyalty.earn_failed"),
+        logger.warn(
+          { err: (e as Error).message, appointmentId: updated!.id },
+          "loyalty.earn_failed",
+        ),
       );
   }
   return updated;

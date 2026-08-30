@@ -214,7 +214,8 @@ export async function createPublicBooking(
       source: "PUBLIC_PAGE",
     });
   } catch (e) {
-    if (e instanceof CustomerBlockedError) throw new SchedulingError("VALIDATION", "customer blocked");
+    if (e instanceof CustomerBlockedError)
+      throw new SchedulingError("VALIDATION", "customer blocked");
     throw e;
   }
   if (input.whatsappOptIn && input.phone) await recordWhatsappOptIn(customerId);

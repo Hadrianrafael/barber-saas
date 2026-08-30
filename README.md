@@ -5,7 +5,8 @@ Stripe Connect), subscriptions, multilingual messaging (e-mail / WhatsApp), a
 per-tenant AI chatbot and a public booking page. Built to be sold, not demoed.
 
 - **Stack:** Next.js 15 (App Router) · TypeScript · PostgreSQL + Prisma · Redis ·
-  Tailwind + shadcn/ui · next-intl (pt-BR / en / es) · Stripe · Resend
+  Tailwind + shadcn/ui · next-intl (pt-BR / en / es) · Stripe · Resend ·
+  Anthropic (chatbot) · BullMQ
 - **Target infra:** Microsoft Azure — Container Apps (web + worker + cron jobs),
   Azure Database for PostgreSQL Flexible Server, Azure Cache for Redis, Azure
   Blob Storage, Key Vault, Container Registry. Code is platform-agnostic
@@ -31,10 +32,21 @@ Super admin console: <http://localhost:3000/admin> (credentials from
 | Script | Purpose |
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
-| `npm run worker` | BullMQ background worker |
+| `npm run worker` / `worker:start` | BullMQ background worker |
+| `npm run cron:reminders` / `cron:retry-messages` | scheduled jobs |
 | `npm run db:migrate` / `db:deploy` / `db:studio` / `db:seed` | Prisma |
 | `npm run typecheck` / `lint` / `format` | Static checks |
 | `npm test` / `test:e2e` | Vitest / Playwright |
+
+## Docs
+
+| | |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | system design |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | vertical slices, all ✅ for V1 |
+| [docs/SECURITY.md](docs/SECURITY.md) | always-on controls |
+| [docs/adr/](docs/adr/) | 0001–0012 decision records |
+| [docs/deployment/](docs/deployment/) | Azure, env vars, DB, local dev, Stripe/Connect, Resend, WhatsApp, chatbot |
 
 ## Layout
 
@@ -54,7 +66,10 @@ docs/                     architecture, roadmap, ADRs
 
 ## Status
 
-See [docs/ROADMAP.md](docs/ROADMAP.md). **Slice 0 (foundation) + Slice 1 (auth,
-multi-tenancy, RBAC, Super Admin)** are in place. Integrations (Stripe, WhatsApp,
-LLM, Azure Blob) are fully wired but inactive until their keys are set — the app
-never fakes a successful payment or delivery.
+**V1 feature-complete** — all roadmap slices (0–11) implemented + production
+hardening. See [docs/ROADMAP.md](docs/ROADMAP.md). Integrations (Stripe, Stripe
+Connect, WhatsApp, Anthropic, Resend, Azure Blob) are fully wired but inactive
+until their keys are set — the app never fakes a successful payment, message or
+AI reply. State: **READY FOR CONFIGURATION** — provide the credentials in
+[docs/deployment/environment-variables.md](docs/deployment/environment-variables.md)
+and follow [docs/deployment/azure.md](docs/deployment/azure.md).
