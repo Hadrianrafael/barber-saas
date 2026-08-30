@@ -26,6 +26,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "stripe:sync-plans": "tsx scripts/stripe/sync-plans.ts",
     "prepare": "husky || true"
   },
   "prisma": {

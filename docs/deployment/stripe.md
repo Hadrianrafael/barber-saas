@@ -1,5 +1,9 @@
 # Stripe setup (SaaS subscription billing)
 
+> **The full reference is [../STRIPE.md](../STRIPE.md)** — architecture, both
+> flows, Tax, Invoicing, idempotency, security, test-mode checklist,
+> troubleshooting, go-live. This file is the short setup checklist for flow A.
+
 This is the **platform** account flow — barbershops paying you for the SaaS.
 Client → barbershop payments (Stripe Connect) are in `stripe-connect.md`.
 
@@ -9,20 +13,33 @@ nothing). **No payment is ever simulated.**
 
 ## 1. Create the products/prices in Stripe
 
-For each plan (`starter`, `pro`, `scale`) create a Product with a recurring
-monthly Price and, optionally, a yearly Price. Copy the `price_...` ids.
+**Recommended** — from the `Plan` rows, in test mode:
 
-## 2. Put the price ids on the Plan rows
+```bash
+STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans           # apply
+STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans -- --dry-run
+STRIPE_SECRET_KEY=sk_live_xxx npm run stripe:sync-plans -- --allow-live  # prod
+```
+
+It creates one Product per plan + a monthly (and yearly, when
+`priceCentsYearly` is set) Price, and writes `stripeProductId` /
+`stripePriceId` / `stripePriceIdYearly` back to the row. A live key is refused
+without `--allow-live`.
+
+**Or by hand**: create the Product + Prices in the Dashboard and set the ids on
+the `Plan` rows (Prisma Studio / SQL):
 
 ```sql
-UPDATE "Plan" SET "stripePriceId" = 'price_month_xxx',
+UPDATE "Plan" SET "stripeProductId" = 'prod_xxx',
+                  "stripePriceId" = 'price_month_xxx',
                   "stripePriceIdYearly" = 'price_year_xxx'
 WHERE code = 'pro';
 ```
 
-(or via Prisma Studio / a one-off script). `startCheckout` throws
-`PLAN_NOT_IN_STRIPE` if the chosen interval's price id is missing — the
-onboarding flow then falls back to the free trial.
+`startCheckout` throws `PLAN_NOT_IN_STRIPE` if the chosen interval's price id is
+missing — the onboarding flow then falls back to the free trial.
+
+## 2. (done by step 1)
 
 ## 3. Environment variables
 
@@ -31,9 +48,11 @@ onboarding flow then falls back to the free trial.
 | `STRIPE_SECRET_KEY` | Key Vault → Container App secret | `sk_live_...` / `sk_test_...` |
 | `STRIPE_PUBLISHABLE_KEY` | env | `pk_...` (not currently used server-side; kept for future embedded checkout) |
 | `STRIPE_WEBHOOK_SECRET` | Key Vault | from the webhook endpoint you create in step 4 |
+| `STRIPE_TAX_ENABLED` | env | `true` only after tax registrations are configured in Stripe → Tax. See [../STRIPE.md](../STRIPE.md#stripe-tax). Default off. |
 
 `isConfigured.stripe` is true only when `STRIPE_SECRET_KEY` **and**
-`STRIPE_WEBHOOK_SECRET` are both set.
+`STRIPE_WEBHOOK_SECRET` are both set. `STRIPE_CONNECT_CLIENT_ID` is **not** used
+(Express + Account Links, not OAuth).
 
 ## 4. Webhook endpoint
 
@@ -44,9 +63,10 @@ https://<your-app>/api/webhooks/stripe
 ```
 
 Subscribe to: `checkout.session.completed`, `customer.subscription.created`,
-`customer.subscription.updated`, `customer.subscription.deleted`,
-`invoice.paid`, `invoice.payment_succeeded`, `invoice.finalized`,
-`invoice.created`, `invoice.payment_failed`.
+`customer.subscription.updated`, `customer.subscription.resumed`,
+`customer.subscription.deleted`, `invoice.paid`, `invoice.payment_succeeded`,
+`invoice.finalized`, `invoice.created`, `invoice.payment_failed`,
+`charge.refunded`.
 
 Copy the signing secret into `STRIPE_WEBHOOK_SECRET`.
 

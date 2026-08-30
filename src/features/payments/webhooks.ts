@@ -3,19 +3,41 @@ import type Stripe from "stripe";
 import { prisma } from "@/server/db/client";
 import { env } from "@/env";
 import { logger } from "@/lib/logger";
+import { logFinancialEvent } from "@/server/payments/log";
 import { applyAccountUpdate } from "./connect";
 
 /**
  * Stripe **Connect** webhook mapping — client → barbershop payments only.
  * Idempotent per handler (upsert / status guards) on top of the route-level
  * WebhookEvent de-dup (provider = "stripe_connect").
+ *
+ * `eventAccount` is `event.account` — the connected account the event fired on.
+ * Handlers that touch a specific tenant assert this matches that tenant's
+ * `PayoutAccount.providerAccountId` so a mislabelled `metadata.tenantId` can
+ * never move money onto the wrong tenant's ledger.
  */
 
 function applicationFee(amountCents: number): number {
   return Math.round((amountCents * env.PLATFORM_FEE_BPS) / 10_000);
 }
 
-export async function handleConnectEvent(event: Stripe.Event): Promise<{ handled: boolean }> {
+/** True when the connected account on the event belongs to this tenant. */
+async function accountMatchesTenant(
+  tenantId: string,
+  eventAccount: string | undefined,
+): Promise<boolean> {
+  if (!eventAccount) return true; // some test/replay events omit it; other guards still apply
+  const acct = await prisma.payoutAccount.findUnique({
+    where: { tenantId },
+    select: { providerAccountId: true },
+  });
+  return acct?.providerAccountId === eventAccount;
+}
+
+export async function handleConnectEvent(
+  event: Stripe.Event,
+  eventAccount?: string,
+): Promise<{ handled: boolean }> {
   switch (event.type) {
     case "account.updated":
       await applyAccountUpdate(
@@ -23,7 +45,11 @@ export async function handleConnectEvent(event: Stripe.Event): Promise<{ handled
       );
       return { handled: true };
     case "checkout.session.completed":
-      await onCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      await onCheckoutCompleted(
+        event.data.object as Stripe.Checkout.Session,
+        event.id,
+        eventAccount,
+      );
       return { handled: true };
     case "payment_intent.succeeded":
       await onIntentSucceeded(event.data.object as Stripe.PaymentIntent);
@@ -40,12 +66,30 @@ export async function handleConnectEvent(event: Stripe.Event): Promise<{ handled
   }
 }
 
-async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
+async function onCheckoutCompleted(
+  s: Stripe.Checkout.Session,
+  eventId: string,
+  eventAccount: string | undefined,
+) {
   const meta = s.metadata ?? {};
   const linkId = (meta.paymentLinkId as string) || undefined;
   const tenantId = (meta.tenantId as string) || undefined;
   if (!tenantId) return;
   if (s.payment_status !== "paid") return;
+
+  if (!(await accountMatchesTenant(tenantId, eventAccount))) {
+    logFinancialEvent(
+      "connect.checkout.account_mismatch",
+      {
+        flow: "client_payment",
+        tenantId,
+        stripeEventId: eventId,
+        stripeAccountId: eventAccount ?? null,
+      },
+      "error",
+    );
+    throw new Error("connect event account does not match tenant payout account");
+  }
 
   const amountCents = s.amount_total ?? 0;
   const currency = (s.currency ?? "brl").toUpperCase();
@@ -54,6 +98,7 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
     typeof s.payment_intent === "string" ? s.payment_intent : (s.payment_intent?.id ?? null);
 
   let confirmedAppointmentId: string | null = null;
+  let createdPaymentId: string | null = null;
   await prisma.$transaction(async (tx) => {
     // De-dup on the intent id.
     if (intentId) {
@@ -74,8 +119,17 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
         customerId ||= link.customerId;
       }
     }
+    // Never trust a metadata appointment/customer id that isn't this tenant's.
+    if (appointmentId) {
+      const ok = await tx.appointment.count({ where: { id: appointmentId, tenantId } });
+      if (ok === 0) appointmentId = null;
+    }
+    if (customerId) {
+      const ok = await tx.customer.count({ where: { id: customerId, tenantId } });
+      if (ok === 0) customerId = null;
+    }
 
-    await tx.payment.create({
+    const payment = await tx.payment.create({
       data: {
         tenantId,
         purpose: "CLIENT_PAYMENT",
@@ -92,7 +146,9 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
         paymentLinkId: linkId ?? null,
         paidAt: new Date(),
       },
+      select: { id: true },
     });
+    createdPaymentId = payment.id;
 
     // A paid public booking is auto-confirmed (idempotent: only PENDING moves).
     if (appointmentId) {
@@ -110,7 +166,17 @@ async function onCheckoutCompleted(s: Stripe.Checkout.Session) {
       )
       .catch((e) => logger.warn({ err: (e as Error).message }, "connect.confirm_notify_failed"));
   }
-  logger.info({ tenantId, linkId, amountCents }, "connect.checkout.paid");
+  logFinancialEvent("connect.checkout.paid", {
+    flow: "client_payment",
+    tenantId,
+    stripeEventId: eventId,
+    stripeAccountId: eventAccount ?? null,
+    paymentId: createdPaymentId,
+    stripePaymentIntentId: intentId,
+    amountCents,
+    currency,
+    status: createdPaymentId ? "SUCCEEDED" : "DUPLICATE",
+  });
 }
 
 async function onIntentSucceeded(pi: Stripe.PaymentIntent) {
@@ -124,7 +190,7 @@ async function onIntentSucceeded(pi: Stripe.PaymentIntent) {
 }
 
 async function onIntentFailed(pi: Stripe.PaymentIntent) {
-  await prisma.payment.updateMany({
+  const updated = await prisma.payment.updateMany({
     where: { providerIntentId: pi.id, status: { in: ["REQUIRES_PAYMENT", "PROCESSING"] } },
     data: {
       status: "FAILED",
@@ -132,11 +198,22 @@ async function onIntentFailed(pi: Stripe.PaymentIntent) {
       failureCode: pi.last_payment_error?.code ?? null,
     },
   });
+  if (updated.count > 0) {
+    logFinancialEvent(
+      "connect.payment_intent.failed",
+      {
+        flow: "client_payment",
+        stripePaymentIntentId: pi.id,
+        status: "FAILED",
+      },
+      "warn",
+    );
+  }
 }
 
 async function onChargeRefunded(ch: Stripe.Charge) {
   const payment = await prisma.payment.findFirst({
-    where: { providerChargeId: ch.id },
+    where: { providerChargeId: ch.id, purpose: "CLIENT_PAYMENT" },
   });
   if (!payment) return;
   const refunded = ch.amount_refunded ?? 0;
@@ -147,5 +224,13 @@ async function onChargeRefunded(ch: Stripe.Charge) {
       status: refunded >= payment.amountCents ? "REFUNDED" : "PARTIALLY_REFUNDED",
     },
   });
-  logger.info({ paymentId: payment.id, refunded }, "connect.charge.refunded");
+  logFinancialEvent("connect.charge.refunded", {
+    flow: "client_payment",
+    tenantId: payment.tenantId,
+    paymentId: payment.id,
+    stripeChargeId: ch.id,
+    amountCents: refunded,
+    currency: payment.currency,
+    status: refunded >= payment.amountCents ? "REFUNDED" : "PARTIALLY_REFUNDED",
+  });
 }

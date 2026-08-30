@@ -226,4 +226,67 @@ d("billing (DB)", () => {
       code: "FEATURE_UNAVAILABLE",
     });
   });
+
+  it("customer.subscription.deleted → CANCELED + tenant CANCELED", async () => {
+    const t = await tenant();
+    cleanup.push(t.id);
+    const subId = `sub_${uniq()}`;
+    await handleStripeEvent(
+      subEvent("customer.subscription.created", {
+        customer: t.stripeCustomerId!,
+        id: subId,
+        status: "active",
+      }),
+    );
+    await handleStripeEvent({
+      id: `evt_${uniq()}`,
+      type: "customer.subscription.deleted",
+      data: { object: { id: subId, customer: t.stripeCustomerId!, status: "canceled" } },
+    } as unknown as Stripe.Event);
+
+    const sub = await prisma.subscription.findFirst({ where: { providerSubId: subId } });
+    expect(sub!.status).toBe("CANCELED");
+    const tt = await prisma.tenant.findUnique({ where: { id: t.id } });
+    expect(tt!.status).toBe("CANCELED");
+    expect((await getEntitlements(t.id)).blocked).toBe(true);
+  });
+
+  it("replayed invoice.paid writes only one Payment ledger row", async () => {
+    const t = await tenant();
+    cleanup.push(t.id);
+    const subId = `sub_${uniq()}`;
+    await handleStripeEvent(
+      subEvent("customer.subscription.created", {
+        customer: t.stripeCustomerId!,
+        id: subId,
+        status: "active",
+      }),
+    );
+    const invId = `in_${uniq()}`;
+    const ev = invoiceEvent("invoice.paid", {
+      customer: t.stripeCustomerId!,
+      subscription: subId,
+      id: invId,
+    });
+    await handleStripeEvent(ev);
+    await handleStripeEvent({ ...ev, id: `evt_${uniq()}` } as Stripe.Event); // replay
+
+    const inv = await prisma.invoice.findFirst({ where: { providerInvoiceId: invId } });
+    const payments = await prisma.payment.findMany({
+      where: { tenantId: t.id, purpose: "SAAS_SUBSCRIPTION", invoiceId: inv!.id },
+    });
+    expect(payments).toHaveLength(1);
+  });
+
+  it("changePlan is a no-op (returns null) without a live Stripe subscription", async () => {
+    const { changePlan } = await import("@/features/billing/service");
+    const t = await tenant();
+    cleanup.push(t.id);
+    // trial subscription intent (no providerSubId) — must fall back to checkout
+    await prisma.subscription.create({
+      data: { tenantId: t.id, scope: "PLATFORM", status: "TRIALING", provider: "stripe" },
+    });
+    const r = await changePlan({ tenantId: t.id, planCode: "pro", interval: "month" });
+    expect(r).toBeNull();
+  });
 });

@@ -76,12 +76,28 @@ Required GitHub secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
 - **Readiness** → `GET /api/health` (checks Postgres; Redis degrades but stays
   ready).
 
-## 5. First deploy checklist
+## 5. Webhook URLs
+
+| Provider | staging | production |
+|---|---|---|
+| Stripe (SaaS billing) | `https://staging.<domain>/api/webhooks/stripe` | `https://<domain>/api/webhooks/stripe` |
+| Stripe **Connect** | `https://staging.<domain>/api/webhooks/stripe/connect` | `https://<domain>/api/webhooks/stripe/connect` |
+| WhatsApp | `https://staging.<domain>/api/webhooks/whatsapp` | `https://<domain>/api/webhooks/whatsapp` |
+
+Each Stripe endpoint has its **own signing secret** — put the SaaS one in
+`STRIPE_WEBHOOK_SECRET` and the Connect one (created with "Listen to events on
+Connected accounts" checked) in `STRIPE_CONNECT_WEBHOOK_SECRET`. Full event list
+and setup: [../STRIPE.md](../STRIPE.md).
+
+## 6. First deploy checklist
 
 - [ ] Bicep deployed, Key Vault populated
 - [ ] `prisma migrate deploy` succeeded against the prod DB
 - [ ] `npm run db:seed` once (creates the 3 plans + the super-admin from
       `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`)
-- [ ] Stripe / Stripe Connect / WhatsApp webhooks point at the prod URLs
+- [ ] `STRIPE_SECRET_KEY=… npm run stripe:sync-plans` (test) — or `-- --allow-live`
+      for prod — to create the Stripe Products/Prices and backfill the `Plan` rows
+- [ ] Stripe + Stripe Connect + WhatsApp webhooks created at the URLs above,
+      signing secrets in Key Vault
 - [ ] DNS + TLS on the Container Apps custom domain; HSTS confirmed
 - [ ] `/api/health` returns `{"status":"healthy"}`

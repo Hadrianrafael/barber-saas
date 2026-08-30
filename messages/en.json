@@ -408,7 +408,8 @@
       "stripeNotConfigured": "Payments aren't active in this deployment yet. Set the Stripe keys to enable checkout.",
       "planNotConfigured": "This plan has no Stripe price configured yet.",
       "noCustomer": "Billing account not found.",
-      "invalid": "Invalid data."
+      "invalid": "Invalid data.",
+      "planChanged": "Plan updated. Stripe will apply the prorated difference."
     }
   },
   "billing": {

@@ -163,4 +163,112 @@ d("Stripe Connect (DB)", () => {
       name: "NotFoundError",
     });
   });
+
+  it("rejects a Connect event whose account does not match the tenant's payout account", async () => {
+    const t = await tenant();
+    cleanup.push(t.id);
+    await prisma.payoutAccount.create({
+      data: {
+        tenantId: t.id,
+        provider: "stripe",
+        providerAccountId: "acct_theirs",
+        status: "ENABLED",
+        chargesEnabled: true,
+      },
+    });
+    const ev = checkoutEvent({ tenantId: t.id, amount: 5000, intentId: `pi_${uniq()}` });
+    // event fired on a DIFFERENT connected account than the tenant owns
+    await expect(handleConnectEvent(ev, "acct_someone_else")).rejects.toThrow(
+      /account does not match/,
+    );
+    const payments = await prisma.payment.count({ where: { tenantId: t.id } });
+    expect(payments).toBe(0);
+  });
+
+  it("payment_intent.payment_failed marks a pending Payment FAILED", async () => {
+    const t = await tenant();
+    cleanup.push(t.id);
+    const intentId = `pi_${uniq()}`;
+    await prisma.payment.create({
+      data: {
+        tenantId: t.id,
+        purpose: "CLIENT_PAYMENT",
+        status: "PROCESSING",
+        method: "CARD",
+        amountCents: 4000,
+        currency: "BRL",
+        provider: "stripe",
+        providerIntentId: intentId,
+      },
+    });
+    await handleConnectEvent({
+      id: `evt_${uniq()}`,
+      type: "payment_intent.payment_failed",
+      data: { object: { id: intentId, last_payment_error: { code: "card_declined" } } },
+    } as unknown as Stripe.Event);
+    const p = await prisma.payment.findFirst({ where: { providerIntentId: intentId } });
+    expect(p!.status).toBe("FAILED");
+    expect(p!.failureCode).toBe("card_declined");
+  });
+
+  it("ignores a metadata appointmentId that belongs to another tenant", async () => {
+    const t1 = await tenant();
+    const t2 = await tenant();
+    cleanup.push(t1.id, t2.id);
+    const emp = await prisma.employee.create({
+      data: { tenantId: t2.id, name: "B", status: "ACTIVE" },
+    });
+    const svc = await prisma.service.create({
+      data: {
+        tenantId: t2.id,
+        name: "Corte",
+        priceCents: 4000,
+        currency: "BRL",
+        durationMin: 30,
+        status: "ACTIVE",
+      },
+    });
+    const cust = await prisma.customer.create({ data: { tenantId: t2.id, name: "C" } });
+    const start = new Date(Date.now() + 3 * 86400000);
+    const foreignAppt = await prisma.appointment.create({
+      data: {
+        tenantId: t2.id,
+        customerId: cust.id,
+        employeeId: emp.id,
+        serviceId: svc.id,
+        status: "PENDING",
+        source: "PUBLIC_PAGE",
+        startsAt: start,
+        endsAt: new Date(start.getTime() + 1800000),
+        serviceName: "Corte",
+        durationMin: 30,
+        bufferMin: 0,
+        priceCents: 4000,
+        currency: "BRL",
+      },
+    });
+    const ev = {
+      id: `evt_${uniq()}`,
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: `cs_${uniq()}`,
+          payment_status: "paid",
+          amount_total: 4000,
+          currency: "brl",
+          payment_intent: `pi_${uniq()}`,
+          metadata: { tenantId: t1.id, appointmentId: foreignAppt.id, customerId: cust.id },
+        },
+      },
+    } as unknown as Stripe.Event;
+    await handleConnectEvent(ev);
+
+    const pay = await prisma.payment.findFirst({
+      where: { tenantId: t1.id, purpose: "CLIENT_PAYMENT" },
+    });
+    expect(pay!.appointmentId).toBeNull(); // cross-tenant id was dropped
+    expect(pay!.customerId).toBeNull();
+    const stillPending = await prisma.appointment.findUnique({ where: { id: foreignAppt.id } });
+    expect(stillPending!.status).toBe("PENDING"); // never touched
+  });
 });

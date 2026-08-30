@@ -48,6 +48,13 @@ const schema = z.object({
   STRIPE_PRICING_TABLE_ID: z.string().optional().default(""),
   STRIPE_CONNECT_WEBHOOK_SECRET: z.string().optional().default(""),
   PLATFORM_FEE_BPS: z.coerce.number().int().min(0).max(10000).default(0),
+  // Stripe Tax on SaaS subscription checkout. Requires tax registrations to be
+  // configured in the Stripe Dashboard first — off by default, never assumed.
+  STRIPE_TAX_ENABLED: z
+    .string()
+    .optional()
+    .default("")
+    .transform((v) => v === "true" || v === "1"),
 
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(""),
   WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default(""),
@@ -81,6 +88,7 @@ export const isConfigured = {
   azureBlob: env.AZURE_STORAGE_CONNECTION_STRING.length > 0,
   stripe: env.STRIPE_SECRET_KEY.length > 0 && env.STRIPE_WEBHOOK_SECRET.length > 0,
   stripeConnect: env.STRIPE_SECRET_KEY.length > 0 && env.STRIPE_CONNECT_WEBHOOK_SECRET.length > 0,
+  stripeTax: env.STRIPE_SECRET_KEY.length > 0 && env.STRIPE_TAX_ENABLED,
   whatsapp: env.WHATSAPP_ACCESS_TOKEN.length > 0 && env.WHATSAPP_PHONE_NUMBER_ID.length > 0,
   chatbot: env.ANTHROPIC_API_KEY.length > 0,
 } as const;

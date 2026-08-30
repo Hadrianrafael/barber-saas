@@ -52,8 +52,44 @@ export async function startCheckout(args: CheckoutArgs): Promise<{ url: string }
     customerEmail: args.customerEmail,
     existingCustomerId: tenant?.stripeCustomerId ?? undefined,
     trialDays: plan.trialDays,
+    // Stable per tenant+price so a double click doesn't spawn two sessions
+    // (Stripe idempotency keys expire after 24h; the session stays valid).
+    idempotencyKey: `${args.tenantId}:${priceId}`,
   });
   return { url: result.url };
+}
+
+/**
+ * Upgrade / downgrade an existing paid subscription **in place** (Stripe
+ * prorates). Only used when the tenant already has a live Stripe subscription;
+ * a tenant on the trial with no `providerSubId` goes through `startCheckout`
+ * instead (first real subscription). The `customer.subscription.updated` webhook
+ * re-syncs the plan + price afterwards — never mutate billing state here.
+ */
+export async function changePlan(args: {
+  tenantId: string;
+  planCode: string;
+  interval: "month" | "year";
+}): Promise<{ mode: "updated" } | { mode: "checkout"; url: string; locale: string } | null> {
+  const sub = await prisma.subscription.findFirst({
+    where: { tenantId: args.tenantId, scope: "PLATFORM" },
+    orderBy: { createdAt: "desc" },
+    select: { providerSubId: true, status: true },
+  });
+  if (!sub?.providerSubId || sub.status === "CANCELED") return null; // caller falls back to checkout
+
+  const plan = await prisma.plan.findUnique({ where: { code: args.planCode } });
+  if (!plan) throw new BillingConfigError("PLAN_NOT_IN_STRIPE", "unknown plan");
+  const priceId = args.interval === "year" ? plan.stripePriceIdYearly : plan.stripePriceId;
+  if (!priceId) {
+    throw new BillingConfigError(
+      "PLAN_NOT_IN_STRIPE",
+      `plan "${plan.code}" has no Stripe ${args.interval} price id`,
+    );
+  }
+
+  await paymentProvider.updateSubscriptionPrice(sub.providerSubId, priceId);
+  return { mode: "updated" };
 }
 
 export async function openBillingPortal(

@@ -101,7 +101,10 @@ d("slice 11 (DB)", () => {
       kind: "discount",
       amountOffCents: 500,
     });
-    const { couponCode } = await redeemReward(s.t.id, cust.id, reward.id, { userId: null, label: "test" });
+    const { couponCode } = await redeemReward(s.t.id, cust.id, reward.id, {
+      userId: null,
+      label: "test",
+    });
     expect(couponCode).toMatch(/^LOYAL-/);
     const after = await prisma.loyaltyAccount.findUnique({ where: { customerId: cust.id } });
     expect(after!.points).toBe(0);

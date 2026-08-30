@@ -27,8 +27,11 @@ export async function POST(req: NextRequest) {
 
   const payload = await req.text();
   let event: Stripe.Event;
+  let eventAccount: string | undefined;
   try {
-    event = paymentProvider.verifyWebhook(payload, signature, "connect").raw as Stripe.Event;
+    const normalized = paymentProvider.verifyWebhook(payload, signature, "connect");
+    event = normalized.raw as Stripe.Event;
+    eventAccount = normalized.account;
   } catch (err) {
     logger.warn({ err: (err as Error).message }, "connect.webhook.bad_signature");
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await handleConnectEvent(event);
+    const result = await handleConnectEvent(event, eventAccount);
     await prisma.webhookEvent.update({
       where: { provider_eventId: { provider: "stripe_connect", eventId: event.id } },
       data: { status: result.handled ? "processed" : "ignored", processedAt: new Date() },

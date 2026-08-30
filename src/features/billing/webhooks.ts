@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import type { SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/server/db/client";
 import { logger } from "@/lib/logger";
+import { logFinancialEvent } from "@/server/payments/log";
 
 /**
  * Stripe → domain mapping for the **SaaS subscription** flow (platform account).
@@ -56,10 +57,14 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<{ handled:
       return { handled: true };
     case "customer.subscription.created":
     case "customer.subscription.updated":
+    case "customer.subscription.resumed":
       await onSubscription(event.data.object as Stripe.Subscription);
       return { handled: true };
     case "customer.subscription.deleted":
       await onSubscriptionDeleted(event.data.object as Stripe.Subscription);
+      return { handled: true };
+    case "charge.refunded":
+      await onChargeRefunded(event.data.object as Stripe.Charge);
       return { handled: true };
     case "invoice.paid":
     case "invoice.payment_succeeded":
@@ -148,7 +153,15 @@ async function onSubscription(sub: Stripe.Subscription) {
       await tx.tenant.update({ where: { id: tenantId }, data: { status: tenantStatus } });
     }
   });
-  logger.info({ tenantId, subId: sub.id, status }, "billing.subscription.synced");
+  logFinancialEvent("billing.subscription.synced", {
+    flow: "saas_subscription",
+    tenantId,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: sub.id,
+    status,
+    amountCents: item?.price?.unit_amount ?? null,
+    currency: (item?.price?.currency ?? "brl").toUpperCase(),
+  });
 }
 
 async function onSubscriptionDeleted(sub: Stripe.Subscription) {
@@ -162,6 +175,31 @@ async function onSubscriptionDeleted(sub: Stripe.Subscription) {
       await prisma.tenant.update({ where: { id: row.tenantId }, data: { status: "CANCELED" } });
   }
   logger.info({ subId: sub.id }, "billing.subscription.deleted");
+}
+
+/** A refund on a SaaS invoice charge — reflect it on the ledger row. */
+async function onChargeRefunded(ch: Stripe.Charge) {
+  const payment = await prisma.payment.findFirst({
+    where: { providerChargeId: ch.id, purpose: "SAAS_SUBSCRIPTION" },
+  });
+  if (!payment) return; // not a SaaS charge — the Connect webhook owns client refunds
+  const refunded = ch.amount_refunded ?? 0;
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: {
+      refundedCents: refunded,
+      status: refunded >= payment.amountCents ? "REFUNDED" : "PARTIALLY_REFUNDED",
+    },
+  });
+  logFinancialEvent("billing.charge.refunded", {
+    flow: "saas_subscription",
+    tenantId: payment.tenantId,
+    paymentId: payment.id,
+    stripeChargeId: ch.id,
+    amountCents: refunded,
+    currency: payment.currency,
+    status: refunded >= payment.amountCents ? "REFUNDED" : "PARTIALLY_REFUNDED",
+  });
 }
 
 async function upsertInvoice(inv: Stripe.Invoice, status: "OPEN" | "PAID" | "UNCOLLECTIBLE") {
@@ -212,22 +250,32 @@ async function onInvoicePaid(inv: Stripe.Invoice) {
   const res = await upsertInvoice(inv, "PAID");
   if (!res) return;
   const { row, tenantId, sub } = res;
+  const chargeId = typeof inv.charge === "string" ? inv.charge : (inv.charge?.id ?? null);
 
-  await prisma.payment.create({
-    data: {
-      tenantId,
-      purpose: "SAAS_SUBSCRIPTION",
-      status: "SUCCEEDED",
-      method: "CARD",
-      amountCents: inv.amount_paid,
-      currency: inv.currency.toUpperCase(),
-      provider: "stripe",
-      providerChargeId: typeof inv.charge === "string" ? inv.charge : (inv.charge?.id ?? null),
-      subscriptionId: sub?.id ?? null,
-      invoiceId: row.id,
-      paidAt: new Date(),
-    },
+  // Idempotent on the (unique) provider intent / charge — a replayed invoice.paid
+  // must not write a second ledger row.
+  const existingPayment = await prisma.payment.findFirst({
+    where: { invoiceId: row.id, purpose: "SAAS_SUBSCRIPTION" },
+    select: { id: true },
   });
+  const payment =
+    existingPayment ??
+    (await prisma.payment.create({
+      data: {
+        tenantId,
+        purpose: "SAAS_SUBSCRIPTION",
+        status: "SUCCEEDED",
+        method: "CARD",
+        amountCents: inv.amount_paid,
+        currency: inv.currency.toUpperCase(),
+        provider: "stripe",
+        providerChargeId: chargeId,
+        subscriptionId: sub?.id ?? null,
+        invoiceId: row.id,
+        paidAt: new Date(),
+      },
+      select: { id: true },
+    }));
 
   // A successful payment clears a past-due state.
   if (sub && sub.status === "PAST_DUE") {
@@ -237,7 +285,18 @@ async function onInvoicePaid(inv: Stripe.Invoice) {
     });
     await prisma.tenant.update({ where: { id: tenantId }, data: { status: "ACTIVE" } });
   }
-  logger.info({ tenantId, invoiceId: row.id }, "billing.invoice.paid");
+  logFinancialEvent("billing.invoice.paid", {
+    flow: "saas_subscription",
+    tenantId,
+    invoiceId: row.id,
+    stripeInvoiceId: inv.id,
+    subscriptionId: sub?.id ?? null,
+    paymentId: payment.id,
+    stripeChargeId: chargeId,
+    amountCents: inv.amount_paid,
+    currency: inv.currency.toUpperCase(),
+    status: "SUCCEEDED",
+  });
 }
 
 async function onInvoiceFailed(inv: Stripe.Invoice) {
@@ -254,5 +313,17 @@ async function onInvoiceFailed(inv: Stripe.Invoice) {
     });
   }
   await prisma.tenant.update({ where: { id: tenantId }, data: { status: "PAST_DUE" } });
-  logger.warn({ tenantId, invoiceId: inv.id }, "billing.invoice.failed");
+  logFinancialEvent(
+    "billing.invoice.failed",
+    {
+      flow: "saas_subscription",
+      tenantId,
+      stripeInvoiceId: inv.id,
+      subscriptionId: sub?.id ?? null,
+      amountCents: inv.amount_due,
+      currency: inv.currency.toUpperCase(),
+      status: "PAST_DUE",
+    },
+    "warn",
+  );
 }

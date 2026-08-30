@@ -408,7 +408,8 @@
       "stripeNotConfigured": "O pagamento ainda não está ativo nesta instalação. Configure as chaves da Stripe para habilitar o checkout.",
       "planNotConfigured": "Este plano ainda não tem preço configurado na Stripe.",
       "noCustomer": "Conta de cobrança não encontrada.",
-      "invalid": "Dados inválidos."
+      "invalid": "Dados inválidos.",
+      "planChanged": "Plano atualizado. A cobrança proporcional será aplicada pela Stripe."
     }
   },
   "billing": {

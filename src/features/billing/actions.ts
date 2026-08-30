@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireTenantContext } from "@/server/rbac/guard";
 import { prisma } from "@/server/db/client";
 import { PaymentProviderNotConfiguredError } from "@/server/payments";
-import { startCheckout, openBillingPortal, BillingConfigError } from "./service";
+import { startCheckout, changePlan, openBillingPortal, BillingConfigError } from "./service";
 
 export interface BillingState {
   ok: boolean;
@@ -26,13 +26,31 @@ export async function startCheckoutAction(
   const ctx = await requireTenantContext({ permission: "tenant.billing.manage" });
   const parsed = checkoutSchema.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { ok: false, code: "invalid" };
+  const { planCode, interval, locale } = parsed.data;
 
   try {
+    // Already on a live Stripe subscription → upgrade/downgrade in place (prorated).
+    const changed = await changePlan({ tenantId: ctx.tenantId, planCode, interval });
+    if (changed?.mode === "updated") {
+      await prisma.auditLog.create({
+        data: {
+          tenantId: ctx.tenantId,
+          actorType: "USER",
+          actorId: ctx.session.userId,
+          actorLabel: ctx.session.email,
+          action: "billing.plan_changed",
+          metadata: { planCode, interval },
+        },
+      });
+      return { ok: true, code: "planChanged" };
+    }
+
+    // Otherwise start a fresh Checkout (first real subscription).
     const { url } = await startCheckout({
       tenantId: ctx.tenantId,
-      planCode: parsed.data.planCode,
-      interval: parsed.data.interval,
-      locale: parsed.data.locale,
+      planCode,
+      interval,
+      locale,
       customerEmail: ctx.session.email,
     });
     await prisma.auditLog.create({
@@ -42,7 +60,7 @@ export async function startCheckoutAction(
         actorId: ctx.session.userId,
         actorLabel: ctx.session.email,
         action: "billing.checkout_started",
-        metadata: { planCode: parsed.data.planCode, interval: parsed.data.interval },
+        metadata: { planCode, interval },
       },
     });
     redirect(url);

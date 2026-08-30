@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,8 +35,13 @@ export function PricingTable({
   currentPlanCode?: string | null;
 }) {
   const t = useTranslations("pricing");
+  const router = useRouter();
   const [interval, setInterval] = useState<"month" | "year">("month");
   const [state, action] = useActionState(startCheckoutAction, initial);
+
+  useEffect(() => {
+    if (state.ok && state.code === "planChanged") router.refresh();
+  }, [state, router]);
 
   return (
     <div className="space-y-6">
@@ -56,7 +62,13 @@ export function PricingTable({
 
       {state.code && (
         <Alert
-          variant={state.code === "stripeNotConfigured" ? "default" : "destructive"}
+          variant={
+            state.code === "planChanged"
+              ? "success"
+              : state.code === "stripeNotConfigured"
+                ? "default"
+                : "destructive"
+          }
           className="text-sm"
         >
           {t.has(`notice.${state.code}`) ? t(`notice.${state.code}`) : t("notice.generic")}

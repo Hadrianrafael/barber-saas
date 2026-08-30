@@ -19,8 +19,9 @@ feature and it degrades cleanly (never simulates success).
 | Var | Feature when set |
 |---|---|
 | `RESEND_API_KEY`, `EMAIL_FROM` | real e-mail (else console transport) — `docs/deployment/resend.md` |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY` | SaaS subscription billing — `docs/deployment/stripe.md` |
-| `STRIPE_CONNECT_WEBHOOK_SECRET`, `PLATFORM_FEE_BPS` | client → barbershop payments — `docs/deployment/stripe-connect.md` |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY` | SaaS subscription billing — `docs/STRIPE.md` |
+| `STRIPE_TAX_ENABLED` | `true` enables Stripe Tax on SaaS checkout (needs tax registrations set up in Stripe first) — default off |
+| `STRIPE_CONNECT_WEBHOOK_SECRET`, `PLATFORM_FEE_BPS` | client → barbershop payments — `docs/STRIPE.md` |
 | `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | WhatsApp Cloud API — `docs/deployment/whatsapp.md` |
 | `ANTHROPIC_API_KEY`, `CHATBOT_MODEL` | AI chatbot (else every chat message queues for a human) — `docs/deployment/chatbot.md` |
 | `AZURE_STORAGE_CONNECTION_STRING`, `AZURE_STORAGE_CONTAINER`, `STORAGE_PUBLIC_URL` | Azure Blob uploads (else local disk, dev only) |

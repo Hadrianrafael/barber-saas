@@ -32,6 +32,8 @@ export interface SubscriptionCheckoutInput {
   customerEmail: string;
   existingCustomerId?: string;
   trialDays?: number;
+  /** Stable key so a double-submit reuses the same Checkout Session. */
+  idempotencyKey?: string;
 }
 
 export interface OneOffCheckoutInput {
@@ -43,6 +45,12 @@ export interface OneOffCheckoutInput {
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
+  /** Ask Stripe to generate an invoice/receipt for the client on the connected account. */
+  withInvoice?: boolean;
+  /** Prefill the payer's email (used for the invoice/receipt). */
+  customerEmail?: string;
+  /** Stable key so a double-submit reuses the same Checkout Session. */
+  idempotencyKey?: string;
 }
 
 export interface ClientSubscriptionInput {
@@ -78,6 +86,8 @@ export interface ConnectOnboardingResult {
 export interface NormalizedWebhookEvent {
   id: string;
   type: string;
+  /** Connected-account id for Connect events (`event.account`); undefined for platform events. */
+  account?: string;
   raw: unknown;
 }
 
@@ -88,6 +98,11 @@ export interface PaymentProvider {
   /** Flow 1 — SaaS subscription on the platform account. */
   createSubscriptionCheckout(input: SubscriptionCheckoutInput): Promise<CheckoutResult>;
   createBillingPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }>;
+  /** Upgrade / downgrade an existing subscription in place (prorated). */
+  updateSubscriptionPrice(
+    subscriptionId: string,
+    newPriceId: string,
+  ): Promise<{ id: string; status: string }>;
 
   /** Flow 2 — Stripe Connect onboarding + client payments. */
   createConnectOnboarding(input: ConnectOnboardingInput): Promise<ConnectOnboardingResult>;

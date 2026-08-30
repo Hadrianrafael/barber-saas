@@ -25,6 +25,8 @@ interface CreateLinkInput {
   createdById?: string | null;
   locale: string;
   notify?: boolean;
+  /** Ask Stripe to issue an invoice/receipt to the client on the connected account. */
+  withInvoice?: boolean;
 }
 
 export async function createPaymentLink(input: CreateLinkInput) {
@@ -56,6 +58,13 @@ export async function createPaymentLink(input: CreateLinkInput) {
     }
   }
 
+  const customer = input.customerId
+    ? await prisma.customer.findUnique({
+        where: { id: input.customerId },
+        select: { email: true },
+      })
+    : null;
+
   const link = await prisma.paymentLink.create({
     data: {
       tenantId: input.tenantId,
@@ -79,6 +88,9 @@ export async function createPaymentLink(input: CreateLinkInput) {
     applicationFeeCents: applicationFee(input.amountCents),
     successUrl: `${base}/pay/success?link=${link.id}`,
     cancelUrl: `${base}/pay/canceled?link=${link.id}`,
+    withInvoice: input.withInvoice,
+    customerEmail: customer?.email ?? undefined,
+    idempotencyKey: link.id, // the PaymentLink row is the stable unit of work
     metadata: {
       paymentLinkId: link.id,
       tenantId: input.tenantId,

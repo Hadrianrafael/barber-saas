@@ -1,9 +1,13 @@
 # Stripe Connect setup (client → barbershop payments)
 
+> **The full reference is [../STRIPE.md](../STRIPE.md).** This file is the short
+> setup checklist for flow B.
+
 This flow is **completely separate** from the SaaS subscription billing
 (`stripe.md`): different money movement, different webhook endpoint, different
 signing secret, different `Payment.purpose` (`CLIENT_PAYMENT` vs
-`SAAS_SUBSCRIPTION`). They are never mixed.
+`SAAS_SUBSCRIPTION`). They are never mixed. `STRIPE_CONNECT_CLIENT_ID` is **not**
+needed — this uses Express accounts + Account Links, not the OAuth connect flow.
 
 ## 1. Enable Connect
 
@@ -58,7 +62,7 @@ Copy the signing secret into `STRIPE_CONNECT_WEBHOOK_SECRET`. Idempotent via
 | Event | Effect |
 |---|---|
 | `account.updated` | re-map + persist `PayoutAccount` status / `chargesEnabled` / `payoutsEnabled` / `requirements` |
-| `checkout.session.completed` (paid) | mark the `PaymentLink` PAID; create a `Payment` (`CLIENT_PAYMENT`, `SUCCEEDED`, `platformFeeCents`, `netCents`), linked to the appointment/customer if known; de-duped on the payment-intent id |
+| `checkout.session.completed` (paid) | verify `event.account` matches the tenant's connected account; drop any cross-tenant `appointmentId`/`customerId` in metadata; mark the `PaymentLink` PAID; create a `Payment` (`CLIENT_PAYMENT`, `SUCCEEDED`, `platformFeeCents`, `netCents`), linked to the appointment/customer if known; de-duped on the payment-intent id; auto-confirm a PENDING booking |
 | `payment_intent.succeeded` | backfill `Payment.providerChargeId` (needed for refunds) |
 | `payment_intent.payment_failed` | mark a pending `Payment` FAILED |
 | `charge.refunded` | update `Payment.refundedCents` + status (`PARTIALLY_REFUNDED` / `REFUNDED`) |

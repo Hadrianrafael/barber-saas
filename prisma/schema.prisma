@@ -644,6 +644,7 @@ model Plan {
   priceCents           Int // monthly price
   priceCentsYearly     Int? // yearly price (optional)
   currency             String   @default("BRL")
+  stripeProductId      String? // Stripe Product id (one product, monthly + yearly prices)
   stripePriceId        String? // Stripe Price id, monthly
   stripePriceIdYearly  String? // Stripe Price id, yearly
   trialDays            Int      @default(14)
