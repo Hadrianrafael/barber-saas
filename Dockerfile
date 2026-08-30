@@ -1,43 +1,44 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build → small standalone image for Azure Container Apps.
-# The same image runs the web app (default CMD) and the worker (override CMD).
+# Single multi-stage build → one runtime image that runs BOTH roles:
+#   - web    (default)          : node server.js         (Next.js standalone)
+#   - worker / cron jobs        : node_modules/.bin/tsx src/worker/...
+# The Container Apps for the worker + scheduled jobs override `command`
+# (see infra/main.bicep); the web app uses the default CMD.
 
 FROM node:22-bookworm-slim AS base
-ENV PNPM_HOME=/usr/local/bin
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# ---- deps -----------------------------------------------------------------
+# ---- deps (full, cached) -------------------------------------------------
 FROM base AS deps
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# ---- build --------------------------------------------------------------
+# ---- build ------------------------------------------------------------
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate && npm run build
 
-# ---- runtime (web) -----------------------------------------------------
-FROM base AS web
+# ---- runtime (web + worker in one image) ----------------------------
+FROM base AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
-COPY --from=build /app/public ./public
+
+# Next.js standalone server (its own trimmed node_modules + server.js)…
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/prisma ./prisma
+COPY --from=build --chown=nextjs:nodejs /app/public ./public
+# …then overlay the FULL node_modules + source so `tsx` can run the worker/crons.
+COPY --from=deps  --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=nextjs:nodejs src ./src
+COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs tsconfig.json package.json ./
+
 USER nextjs
 EXPOSE 3000
+# Default role: web. Worker/jobs override this in infra/main.bicep.
 CMD ["node", "server.js"]
-
-# ---- runtime (worker) ------------------------------------------------
-FROM base AS worker
-ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/.next ./.next
-COPY . .
-CMD ["npx", "tsx", "src/worker/index.ts"]

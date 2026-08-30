@@ -1,26 +1,29 @@
-// Barber SaaS — Azure infrastructure (starting point; review before deploying).
-// Resources: Log Analytics, Container Apps env, ACR, Postgres Flexible Server,
-// Redis, Storage (Blob), Key Vault, web + worker Container Apps, reminders cron.
+// Barber SaaS — Azure infrastructure.
 //
-// Secrets (DB password, Stripe keys, etc.) are NOT set here — put them in Key
-// Vault and reference them from the Container Apps as secretRef. This template
-// wires the Key Vault + managed identity; populate values out of band.
+// One template, parameterised by `environment` (dev | staging | prod). Deploy it
+// once per environment into its own resource group. Resources:
+//   Log Analytics · ACR · Postgres Flexible Server · Azure Cache for Redis ·
+//   Storage (Blob) · Key Vault · Container Apps env · web app · worker app ·
+//   two scheduled jobs (reminders, retry-messages).
+//
+// SECRETS: this template declares every secret SLOT with an empty placeholder
+// value. Before go-live, put the real values in Key Vault and switch the
+// `secrets[]` entries from inline `value: ''` to
+// `keyVaultUrl: '<vault>/secrets/<name>'` + `identity: 'system'`, then redeploy.
+// Nothing sensitive lives in this file, in Git, or in the image.
 
-@description('Base name for all resources, e.g. "barbersaas"')
-param namePrefix string
+@description('Base name for all resources, e.g. "barber"')
+param namePrefix string = 'barber'
 
 @description('Azure region')
 param location string = resourceGroup().location
 
-@description('Environment tag: dev | staging | prod')
+@description('Environment: dev | staging | prod')
 @allowed(['dev', 'staging', 'prod'])
-param environment string = 'prod'
+param environment string
 
-@description('Container image for the web app, e.g. <acr>.azurecr.io/barber-web:<tag>')
-param webImage string
-
-@description('Container image for the worker')
-param workerImage string
+@description('Container image (one image runs web + worker + jobs), e.g. <acr>.azurecr.io/barber-saas:<tag>')
+param image string
 
 @description('PostgreSQL administrator login')
 param pgAdminLogin string
@@ -29,30 +32,32 @@ param pgAdminLogin string
 @description('PostgreSQL administrator password')
 param pgAdminPassword string
 
-@description('Public base URL of the app, e.g. https://app.example.com')
+@description('Public base URL of the app for this environment, e.g. https://app.example.com')
 param appUrl string
 
+var isProd = environment == 'prod'
 var tags = {
   app: 'barber-saas'
   env: environment
 }
-var suffix = uniqueString(resourceGroup().id, namePrefix)
+var suffix = uniqueString(resourceGroup().id, namePrefix, environment)
+var envPrefix = '${namePrefix}-${environment}'
 
 // ---------------------------------------------------------------------------
 // Observability
 // ---------------------------------------------------------------------------
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: '${namePrefix}-logs'
+  name: '${envPrefix}-logs'
   location: location
   tags: tags
   properties: {
     sku: { name: 'PerGB2018' }
-    retentionInDays: 30
+    retentionInDays: isProd ? 90 : 30
   }
 }
 
 // ---------------------------------------------------------------------------
-// Container registry
+// Container registry (shared across environments is also fine — one per RG here)
 // ---------------------------------------------------------------------------
 resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: '${namePrefix}acr${suffix}'
@@ -66,24 +71,24 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
 // PostgreSQL Flexible Server
 // ---------------------------------------------------------------------------
 resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
-  name: '${namePrefix}-pg-${suffix}'
+  name: '${envPrefix}-pg-${suffix}'
   location: location
   tags: tags
   sku: {
-    name: environment == 'prod' ? 'Standard_D2ds_v5' : 'Standard_B1ms'
-    tier: environment == 'prod' ? 'GeneralPurpose' : 'Burstable'
+    name: isProd ? 'Standard_D2ds_v5' : 'Standard_B1ms'
+    tier: isProd ? 'GeneralPurpose' : 'Burstable'
   }
   properties: {
     version: '16'
     administratorLogin: pgAdminLogin
     administratorLoginPassword: pgAdminPassword
-    storage: { storageSizeGB: 32 }
+    storage: { storageSizeGB: isProd ? 64 : 32 }
     backup: {
-      backupRetentionDays: environment == 'prod' ? 14 : 7
-      geoRedundantBackup: environment == 'prod' ? 'Enabled' : 'Disabled'
+      backupRetentionDays: isProd ? 21 : 7
+      geoRedundantBackup: isProd ? 'Enabled' : 'Disabled'
     }
     highAvailability: {
-      mode: environment == 'prod' ? 'ZoneRedundant' : 'Disabled'
+      mode: isProd ? 'ZoneRedundant' : 'Disabled'
     }
   }
 
@@ -91,7 +96,8 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
     name: 'barber'
   }
 
-  // Allow Azure services (Container Apps). Tighten to VNet for prod.
+  // Allow Azure services (Container Apps). HARDENING TODO: put PG on a VNet and
+  // delete this rule for prod (see infra/README.md).
   resource fwAzure 'firewallRules@2023-12-01-preview' = {
     name: 'AllowAzureServices'
     properties: {
@@ -105,14 +111,14 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
 // Redis
 // ---------------------------------------------------------------------------
 resource redis 'Microsoft.Cache/redis@2024-03-01' = {
-  name: '${namePrefix}-redis-${suffix}'
+  name: '${envPrefix}-redis-${suffix}'
   location: location
   tags: tags
   properties: {
     sku: {
-      name: environment == 'prod' ? 'Standard' : 'Basic'
+      name: isProd ? 'Standard' : 'Basic'
       family: 'C'
-      capacity: environment == 'prod' ? 1 : 0
+      capacity: isProd ? 1 : 0
     }
     enableNonSslPort: false
     minimumTlsVersion: '1.2'
@@ -120,13 +126,13 @@ resource redis 'Microsoft.Cache/redis@2024-03-01' = {
 }
 
 // ---------------------------------------------------------------------------
-// Storage (Blob) for uploads
+// Storage (Blob) for uploads (logos, covers, photos, avatars)
 // ---------------------------------------------------------------------------
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: '${namePrefix}st${suffix}'
+  name: '${namePrefix}${environment}st${suffix}'
   location: location
   tags: tags
-  sku: { name: environment == 'prod' ? 'Standard_ZRS' : 'Standard_LRS' }
+  sku: { name: isProd ? 'Standard_ZRS' : 'Standard_LRS' }
   kind: 'StorageV2'
   properties: {
     minimumTlsVersion: 'TLS1_2'
@@ -144,10 +150,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 }
 
 // ---------------------------------------------------------------------------
-// Key Vault (populate secret values out of band)
+// Key Vault — populate secret VALUES out of band, then point `secrets[]` here
 // ---------------------------------------------------------------------------
 resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: '${namePrefix}-kv-${suffix}'
+  name: '${envPrefix}-kv-${suffix}'
   location: location
   tags: tags
   properties: {
@@ -155,7 +161,8 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
     sku: { family: 'A', name: 'standard' }
     enableRbacAuthorization: true
     enableSoftDelete: true
-    softDeleteRetentionInDays: 30
+    softDeleteRetentionInDays: isProd ? 90 : 30
+    enablePurgeProtection: isProd
   }
 }
 
@@ -163,7 +170,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
 // Container Apps environment
 // ---------------------------------------------------------------------------
 resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: '${namePrefix}-cae'
+  name: '${envPrefix}-cae'
   location: location
   tags: tags
   properties: {
@@ -177,32 +184,81 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-var redisConn = '${redis.properties.hostName}:${redis.properties.sslPort},password=${redis.listKeys().primaryKey},ssl=True,abortConnect=False'
+// ---------------------------------------------------------------------------
+// Secrets + env wiring (shared by web / worker / jobs)
+// ---------------------------------------------------------------------------
+// Derived connection strings — these come straight from the provisioned
+// resources, so they are real from day one.
 var dbUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
+var redisUrl = 'rediss://:${redis.listKeys().primaryKey}@${redis.properties.hostName}:${redis.properties.sslPort}'
+var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${az.environment().suffixes.storage}'
+var storagePublicUrl = 'https://${storage.name}.blob.${az.environment().suffixes.storage}/uploads'
 
-var commonEnv = [
+// Every integration secret SLOT. Empty until you swap `value` for a Key Vault
+// reference. `env.ts` treats an empty value as "not configured" and the feature
+// degrades cleanly — nothing is ever simulated.
+var appSecrets = [
+  { name: 'database-url', value: dbUrl }
+  { name: 'redis-url', value: redisUrl }
+  { name: 'auth-secret', value: '' } // REQUIRED before go-live — 48+ random bytes
+  { name: 'azure-storage-connection-string', value: storageConn }
+  { name: 'stripe-secret-key', value: '' }
+  { name: 'stripe-publishable-key', value: '' }
+  { name: 'stripe-webhook-secret', value: '' }
+  { name: 'stripe-connect-webhook-secret', value: '' }
+  { name: 'resend-api-key', value: '' }
+  { name: 'anthropic-api-key', value: '' }
+  { name: 'whatsapp-phone-number-id', value: '' }
+  { name: 'whatsapp-business-account-id', value: '' }
+  { name: 'whatsapp-access-token', value: '' }
+  { name: 'whatsapp-webhook-verify-token', value: '' }
+  { name: 'whatsapp-app-secret', value: '' }
+  { name: 'sentry-dsn', value: '' }
+]
+
+var appEnv = [
   { name: 'NODE_ENV', value: 'production' }
   { name: 'APP_URL', value: appUrl }
   { name: 'APP_LOCALES', value: 'pt-BR,en,es' }
   { name: 'APP_DEFAULT_LOCALE', value: 'pt-BR' }
+  { name: 'LOG_LEVEL', value: 'info' }
   { name: 'AZURE_STORAGE_CONTAINER', value: 'uploads' }
+  { name: 'STORAGE_PUBLIC_URL', value: storagePublicUrl }
+  { name: 'EMAIL_FROM', value: 'Barber SaaS <no-reply@example.com>' } // set your verified sender
+  { name: 'PLATFORM_FEE_BPS', value: '0' } // your commercial platform fee, basis points
+  { name: 'STRIPE_TAX_ENABLED', value: 'false' } // set 'true' after Stripe Tax registrations exist
+  { name: 'CHATBOT_MODEL', value: 'claude-sonnet-5' }
   { name: 'DATABASE_URL', secretRef: 'database-url' }
+  { name: 'DIRECT_DATABASE_URL', secretRef: 'database-url' }
   { name: 'REDIS_URL', secretRef: 'redis-url' }
   { name: 'AUTH_SECRET', secretRef: 'auth-secret' }
+  { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'azure-storage-connection-string' }
+  { name: 'STRIPE_SECRET_KEY', secretRef: 'stripe-secret-key' }
+  { name: 'STRIPE_PUBLISHABLE_KEY', secretRef: 'stripe-publishable-key' }
+  { name: 'STRIPE_WEBHOOK_SECRET', secretRef: 'stripe-webhook-secret' }
+  { name: 'STRIPE_CONNECT_WEBHOOK_SECRET', secretRef: 'stripe-connect-webhook-secret' }
+  { name: 'RESEND_API_KEY', secretRef: 'resend-api-key' }
+  { name: 'ANTHROPIC_API_KEY', secretRef: 'anthropic-api-key' }
+  { name: 'WHATSAPP_PHONE_NUMBER_ID', secretRef: 'whatsapp-phone-number-id' }
+  { name: 'WHATSAPP_BUSINESS_ACCOUNT_ID', secretRef: 'whatsapp-business-account-id' }
+  { name: 'WHATSAPP_ACCESS_TOKEN', secretRef: 'whatsapp-access-token' }
+  { name: 'WHATSAPP_WEBHOOK_VERIFY_TOKEN', secretRef: 'whatsapp-webhook-verify-token' }
+  { name: 'WHATSAPP_APP_SECRET', secretRef: 'whatsapp-app-secret' }
+  { name: 'SENTRY_DSN', secretRef: 'sentry-dsn' }
 ]
 
-var commonSecrets = [
-  { name: 'database-url', value: dbUrl }
-  { name: 'redis-url', value: 'rediss://:${redis.listKeys().primaryKey}@${redis.properties.hostName}:${redis.properties.sslPort}' }
-  // Placeholder — replace with a Key Vault reference once the secret exists.
-  { name: 'auth-secret', value: 'REPLACE_VIA_KEYVAULT' }
+var registries = [
+  {
+    server: acr.properties.loginServer
+    identity: 'system'
+  }
 ]
 
 // ---------------------------------------------------------------------------
-// Web app
+// Web app  — default CMD (node server.js)
 // ---------------------------------------------------------------------------
 resource web 'Microsoft.App/containerApps@2024-03-01' = {
-  name: '${namePrefix}-web'
+  name: '${envPrefix}-web'
   location: location
   tags: tags
   identity: { type: 'SystemAssigned' }
@@ -215,34 +271,44 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 3000
         transport: 'auto'
       }
-      secrets: commonSecrets
-      registries: [
-        {
-          server: acr.properties.loginServer
-          identity: 'system'
-        }
-      ]
+      secrets: appSecrets
+      registries: registries
     }
     template: {
       containers: [
         {
           name: 'web'
-          image: webImage
+          image: image
           resources: { cpu: json('0.5'), memory: '1Gi' }
-          env: commonEnv
+          env: appEnv
           probes: [
             {
               type: 'Liveness'
-              httpGet: { path: '/api/health', port: 3000 }
+              httpGet: { path: '/api/health/live', port: 3000 }
               initialDelaySeconds: 10
               periodSeconds: 30
+              failureThreshold: 3
+            }
+            {
+              type: 'Readiness'
+              httpGet: { path: '/api/health', port: 3000 }
+              initialDelaySeconds: 5
+              periodSeconds: 15
+              failureThreshold: 3
+            }
+            {
+              type: 'Startup'
+              httpGet: { path: '/api/health/live', port: 3000 }
+              initialDelaySeconds: 5
+              periodSeconds: 5
+              failureThreshold: 12
             }
           ]
         }
       ]
       scale: {
-        minReplicas: environment == 'prod' ? 1 : 0
-        maxReplicas: 5
+        minReplicas: isProd ? 1 : 0
+        maxReplicas: isProd ? 8 : 3
         rules: [
           {
             name: 'http'
@@ -255,10 +321,10 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ---------------------------------------------------------------------------
-// Worker
+// Worker — overrides CMD to run the BullMQ consumer
 // ---------------------------------------------------------------------------
 resource worker 'Microsoft.App/containerApps@2024-03-01' = {
-  name: '${namePrefix}-worker'
+  name: '${envPrefix}-worker'
   location: location
   tags: tags
   identity: { type: 'SystemAssigned' }
@@ -266,38 +332,68 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: cae.id
     configuration: {
       activeRevisionsMode: 'Single'
-      secrets: commonSecrets
-      registries: [
-        {
-          server: acr.properties.loginServer
-          identity: 'system'
-        }
-      ]
+      secrets: appSecrets
+      registries: registries
     }
     template: {
       containers: [
         {
           name: 'worker'
-          image: workerImage
+          image: image
+          command: ['npx', 'tsx', 'src/worker/index.ts']
           resources: { cpu: json('0.5'), memory: '1Gi' }
-          env: commonEnv
+          env: appEnv
         }
       ]
       scale: {
         minReplicas: 1
-        maxReplicas: 3
+        maxReplicas: isProd ? 4 : 2
       }
     }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Reminders cron (Container Apps Job) — hits an internal endpoint every 5 min
+// Scheduled jobs
 // ---------------------------------------------------------------------------
 resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
-  name: '${namePrefix}-reminders'
+  name: '${envPrefix}-cron-reminders'
   location: location
   tags: tags
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      triggerType: 'Schedule'
+      scheduleTriggerConfig: {
+        cronExpression: '*/15 * * * *'
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
+      replicaTimeout: 600
+      replicaRetryLimit: 1
+      secrets: appSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'reminders'
+          image: image
+          command: ['npx', 'tsx', 'src/worker/cron/reminders.ts']
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+          env: appEnv
+        }
+      ]
+    }
+  }
+}
+
+resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: '${envPrefix}-cron-retry-messages'
+  location: location
+  tags: tags
+  identity: { type: 'SystemAssigned' }
   properties: {
     environmentId: cae.id
     configuration: {
@@ -308,16 +404,51 @@ resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
         replicaCompletionCount: 1
       }
       replicaTimeout: 300
-      secrets: commonSecrets
+      replicaRetryLimit: 1
+      secrets: appSecrets
+      registries: registries
     }
     template: {
       containers: [
         {
-          name: 'reminders'
-          image: workerImage
-          command: ['npx', 'tsx', 'src/worker/cron/reminders.ts']
+          name: 'retry-messages'
+          image: image
+          command: ['npx', 'tsx', 'src/worker/cron/retry-messages.ts']
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
-          env: commonEnv
+          env: appEnv
+        }
+      ]
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One-off migration job — invoke manually from CI before routing traffic:
+//   az containerapp job start -n <envPrefix>-migrate -g <rg>
+// ---------------------------------------------------------------------------
+resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: '${envPrefix}-migrate'
+  location: location
+  tags: tags
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      triggerType: 'Manual'
+      manualTriggerConfig: { parallelism: 1, replicaCompletionCount: 1 }
+      replicaTimeout: 600
+      replicaRetryLimit: 0
+      secrets: appSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'migrate'
+          image: image
+          command: ['npx', 'prisma', 'migrate', 'deploy']
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+          env: appEnv
         }
       ]
     }
@@ -328,3 +459,5 @@ output acrLoginServer string = acr.properties.loginServer
 output webFqdn string = web.properties.configuration.ingress.fqdn
 output keyVaultName string = kv.name
 output postgresHost string = pg.properties.fullyQualifiedDomainName
+output webAppName string = web.name
+output workerAppName string = worker.name

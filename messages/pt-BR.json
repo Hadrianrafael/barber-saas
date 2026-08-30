@@ -937,7 +937,10 @@
     "recent": "Atividade recente",
     "noActivity": "Sem movimentações.",
     "err": {
-      "INSUFFICIENT_POINTS": "Pontos insuficientes."
+      "INSUFFICIENT_POINTS": "Pontos insuficientes.",
+      "NOT_FOUND": "Cliente não encontrado.",
+      "DISABLED": "Programa de fidelidade desativado.",
+      "INVALID": "Valor inválido."
     },
     "activity": {
       "appointment_completed": "atendimento concluído",

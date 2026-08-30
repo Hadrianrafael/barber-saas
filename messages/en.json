@@ -937,7 +937,10 @@
     "recent": "Recent activity",
     "noActivity": "No activity.",
     "err": {
-      "INSUFFICIENT_POINTS": "Not enough points."
+      "INSUFFICIENT_POINTS": "Not enough points.",
+      "NOT_FOUND": "Customer not found.",
+      "DISABLED": "Loyalty program is disabled.",
+      "INVALID": "Invalid value."
     },
     "activity": {
       "appointment_completed": "appointment completed",

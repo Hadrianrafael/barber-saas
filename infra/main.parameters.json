@@ -2,11 +2,10 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "namePrefix": { "value": "barbersaas" },
-    "environment": { "value": "prod" },
-    "webImage": { "value": "REPLACE.azurecr.io/barber-web:latest" },
-    "workerImage": { "value": "REPLACE.azurecr.io/barber-worker:latest" },
+    "namePrefix": { "value": "barber" },
+    "environment": { "value": "staging" },
+    "image": { "value": "REPLACE.azurecr.io/barber-saas:latest" },
     "pgAdminLogin": { "value": "barberadmin" },
-    "appUrl": { "value": "https://app.example.com" }
+    "appUrl": { "value": "https://staging.app.example.com" }
   }
 }

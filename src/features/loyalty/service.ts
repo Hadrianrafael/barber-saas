@@ -19,6 +19,17 @@ interface Actor {
 }
 
 /**
+ * Guard: the customer must belong to this tenant. Every points mutation runs
+ * this first so a crafted request with another tenant's customerId is rejected
+ * server-side (the UI only ever surfaces same-tenant customers, but the UI is
+ * not the authority).
+ */
+async function assertCustomerInTenant(tenantId: string, customerId: string) {
+  const n = await prisma.customer.count({ where: { id: customerId, tenantId } });
+  if (n === 0) throw new LoyaltyError("NOT_FOUND", "customer not in tenant");
+}
+
+/**
  * Award points for a completed appointment. Idempotent: the unique
  * `(appointmentId, reason)` index means a second call (e.g. re-complete) is a
  * no-op. Called from the scheduling `transition` COMPLETED handler.
@@ -76,6 +87,7 @@ export async function earnForCompletedAppointment(tenantId: string, appointmentI
 }
 
 export async function getLoyaltySummary(tenantId: string, customerId: string) {
+  await assertCustomerInTenant(tenantId, customerId);
   const [account, txs] = await Promise.all([
     prisma.loyaltyAccount.findUnique({ where: { customerId } }),
     prisma.loyaltyTransaction.findMany({
@@ -95,6 +107,7 @@ export async function adjustPoints(
   actor: Actor,
 ) {
   if (!Number.isInteger(delta) || delta === 0) throw new LoyaltyError("INVALID");
+  await assertCustomerInTenant(tenantId, customerId);
   const account = await prisma.loyaltyAccount.findUnique({ where: { customerId } });
   const current = account?.points ?? 0;
   if (current + delta < 0) throw new LoyaltyError("INSUFFICIENT_POINTS");
@@ -167,6 +180,7 @@ export async function redeemReward(
   rewardId: string,
   actor: Actor,
 ) {
+  await assertCustomerInTenant(tenantId, customerId);
   const [reward, account, tenant] = await Promise.all([
     prisma.loyaltyReward.findFirst({ where: { id: rewardId, tenantId, isActive: true } }),
     prisma.loyaltyAccount.findUnique({ where: { customerId } }),

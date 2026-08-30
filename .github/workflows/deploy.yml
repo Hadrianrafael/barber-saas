@@ -1,10 +1,14 @@
 name: Deploy
 
-# Build → push to ACR → run migrations → roll Container Apps.
-# Staging deploys automatically on green main; production is manual and gated by
-# the `production` GitHub Environment (required reviewers). Nothing here is
-# destructive — migrations are `prisma migrate deploy` (forward-only) and the
-# apps are updated with a new image tag (revision), never deleted.
+# Build → push to ACR → run migrations (inside the Container Apps env) → roll the
+# web + worker apps and the scheduled jobs.
+#
+# - staging deploys automatically on green `main`.
+# - production is `workflow_dispatch` only, gated by the `production` GitHub
+#   Environment (required reviewers).
+# - Nothing is destructive: `prisma migrate deploy` is forward-only; apps are
+#   updated with a new image tag (a new revision), never deleted. Rollback =
+#   re-run with an older commit SHA, or `az containerapp revision set-active`.
 
 on:
   push:
@@ -39,7 +43,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: ACR build (web + worker share one image)
+      - name: ACR build (one image runs web + worker + jobs)
         run: |
           az acr build \
             --registry "${{ secrets.ACR_NAME }}" \
@@ -52,52 +56,47 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'staging' }}
     env:
-      ENV_NAME: ${{ github.event.inputs.environment || 'staging' }}
+      # GitHub Environment name → Bicep `environment` short name (dev|staging|prod)
+      ENV_SHORT: ${{ (github.event.inputs.environment || 'staging') == 'production' && 'prod' || 'staging' }}
       IMAGE: ${{ secrets.ACR_NAME }}.azurecr.io/barber-saas:${{ needs.build.outputs.tag }}
+      RG: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      PREFIX: barber
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npx prisma generate
-
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Migrations run once, before any app picks up the new image.
+      # Migrations run inside the Container Apps env (which can reach the DB),
+      # once, before any app picks up the new image. Forward-only.
       - name: Run database migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
-
-      - name: Update web Container App
         run: |
-          az containerapp update \
-            --name "barber-${ENV_NAME}-web" \
-            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-            --image "$IMAGE"
+          az containerapp job update -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" --image "$IMAGE"
+          az containerapp job start  -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" --output none
+          # wait for completion
+          for i in $(seq 1 40); do
+            status=$(az containerapp job execution list -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" \
+              --query "[0].properties.status" -o tsv)
+            echo "migrate job: $status"
+            [ "$status" = "Succeeded" ] && break
+            [ "$status" = "Failed" ] && { echo "::error::migration job failed"; exit 1; }
+            sleep 15
+          done
 
-      - name: Update worker Container App
+      - name: Roll web + worker
         run: |
-          az containerapp update \
-            --name "barber-${ENV_NAME}-worker" \
-            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-            --image "$IMAGE"
+          az containerapp update -g "$RG" -n "$PREFIX-$ENV_SHORT-web"    --image "$IMAGE" --output none
+          az containerapp update -g "$RG" -n "$PREFIX-$ENV_SHORT-worker" --image "$IMAGE" --output none
 
-      - name: Update scheduled jobs (reminders + message retry)
+      - name: Roll scheduled jobs
         run: |
-          for job in reminders retry-messages; do
-            az containerapp job update \
-              --name "barber-${ENV_NAME}-cron-${job}" \
-              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-              --image "$IMAGE" || echo "job barber-${ENV_NAME}-cron-${job} not found, skipping"
+          for job in cron-reminders cron-retry-messages; do
+            az containerapp job update -g "$RG" -n "$PREFIX-$ENV_SHORT-$job" --image "$IMAGE" --output none \
+              || echo "job $PREFIX-$ENV_SHORT-$job not found, skipping"
           done
 
       - name: Smoke check readiness
         run: |
-          sleep 20
+          sleep 25
           curl -fsS "${{ secrets.APP_HEALTH_URL }}" | tee /dev/stderr | grep -q '"status":"healthy"'

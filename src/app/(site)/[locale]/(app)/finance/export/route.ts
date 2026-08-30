@@ -59,9 +59,13 @@ export async function GET(req: NextRequest) {
     if (page >= chunk.pages) break;
   }
 
-  const csv = rows
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
+  // Quote every cell + neutralise spreadsheet formula injection (a value that
+  // starts with = + - @ or a tab is prefixed with a single quote).
+  const cell = (c: string) => {
+    const s = /^[=+\-@\t\r]/.test(c) ? `'${c}` : c;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+  const csv = rows.map((r) => r.map((c) => cell(String(c))).join(",")).join("\r\n");
 
   return new NextResponse(csv, {
     headers: {
