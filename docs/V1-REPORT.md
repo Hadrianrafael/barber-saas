@@ -323,6 +323,6 @@ SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... npx tsx prisma/seed.ts
 | `2a6a3e0` | Slice 11 — Import · Campanhas · Fidelidade · Avaliações · Super Admin |
 | `a6b257b` | Production hardening — observabilidade, headers, CI/CD deploy, docs |
 
-| `<preenchido no commit>` | Stripe — finalização (Products/Prices como dados + `stripe:sync-plans`, upgrade/downgrade in-place, verificação de `event.account` no Connect, `subscription.resumed` + `charge.refunded` no SaaS, Stripe Tax opt-in, idempotency keys, logs financeiros estruturados). ADR 0013, `docs/STRIPE.md` |
+| `4bfa2a2` | Stripe — finalização (Products/Prices como dados + `stripe:sync-plans`, upgrade/downgrade in-place, verificação de `event.account` no Connect, `subscription.resumed` + `charge.refunded` no SaaS, Stripe Tax opt-in, idempotency keys, logs financeiros estruturados). ADR 0013, `docs/STRIPE.md` |
 
 ADRs: `docs/adr/0001`–`0013`.
