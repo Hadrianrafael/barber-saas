@@ -436,7 +436,7 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'worker'
           image: image
-          command: ['npx', 'tsx', 'src/worker/index.ts']
+          command: ['/app/node_modules/.bin/tsx', 'src/worker/index.ts']
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: appEnv
         }
@@ -477,7 +477,7 @@ resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
         {
           name: 'reminders'
           image: image
-          command: ['npx', 'tsx', 'src/worker/cron/reminders.ts']
+          command: ['/app/node_modules/.bin/tsx', 'src/worker/cron/reminders.ts']
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: appEnv
         }
@@ -512,7 +512,7 @@ resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
         {
           name: 'retry-messages'
           image: image
-          command: ['npx', 'tsx', 'src/worker/cron/retry-messages.ts']
+          command: ['/app/node_modules/.bin/tsx', 'src/worker/cron/retry-messages.ts']
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: appEnv
         }
@@ -546,7 +546,7 @@ resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
         {
           name: 'migrate'
           image: image
-          command: ['npx', 'prisma', 'migrate', 'deploy']
+          command: ['/app/node_modules/.bin/prisma', 'migrate', 'deploy']
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: appEnv
         }

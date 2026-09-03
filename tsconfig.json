@@ -18,7 +18,9 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "server-only": ["./src/shims/marker.ts"],
+      "client-only": ["./src/shims/marker.ts"]
     }
   },
   "include": [
