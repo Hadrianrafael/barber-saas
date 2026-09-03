@@ -104,6 +104,13 @@ const PLANS: {
 ];
 
 async function main() {
+  const safeUrl = (process.env.DATABASE_URL ?? "").replace(/\/\/[^@]*@/, "//***@");
+  console.warn(`[seed] start · DATABASE_URL=${safeUrl}`);
+  await prisma.$connect();
+  console.warn("[seed] $connect ok");
+  const rows = (await prisma.$queryRaw`SELECT now() as now`) as { now: Date }[];
+  console.warn(`[seed] db now=${rows[0]?.now?.toISOString() ?? "?"}`);
+
   for (const plan of PLANS) {
     await prisma.plan.upsert({
       where: { code: plan.code },
@@ -118,6 +125,7 @@ async function main() {
       },
       create: plan,
     });
+    console.warn(`[seed] plan upserted: ${plan.code}`);
   }
   console.warn(`✓ ${PLANS.length} plans upserted`);
 
