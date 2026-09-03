@@ -166,7 +166,9 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: isProd ? 90 : 30
-    enablePurgeProtection: isProd
+    // Azure rejects `false` here (purge protection is irreversible once on).
+    // Pass `true` only for prod; omit entirely otherwise.
+    enablePurgeProtection: isProd ? true : null
   }
 }
 
