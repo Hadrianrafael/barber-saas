@@ -256,7 +256,13 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // ---------------------------------------------------------------------------
 // Derived connection strings — these come straight from the provisioned
 // resources, so they are real from day one.
-var dbUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
+// `dbDirectUrl` is the plain connection used by `prisma migrate deploy`
+// (schema.prisma `directUrl`). `dbUrl` is the runtime pool — capped at 5
+// connections so web + worker + a one-off job (seed) together stay well under
+// the B1ms Burstable `max_connections` (~35); an uncapped pool sizes itself to
+// the host CPU count and exhausts the server, which is what hung the seed.
+var dbDirectUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
+var dbUrl = '${dbDirectUrl}&connection_limit=5&pool_timeout=30'
 // Internal-only, no auth, no TLS — isolated to the Container Apps env network.
 // TCP ingress between apps in the same environment is reached by the plain app
 // name (the `.internal.<defaultDomain>` FQDN form is HTTP-only and does not
@@ -274,6 +280,7 @@ var storagePublicUrl = '${storage.properties.primaryEndpoints.blob}uploads'
 var unset = ' '
 var appSecrets = [
   { name: 'database-url', value: dbUrl }
+  { name: 'direct-database-url', value: dbDirectUrl }
   { name: 'redis-url', value: redisUrl }
   { name: 'auth-secret', value: authSecret }
   { name: 'azure-storage-connection-string', value: storageConn }
@@ -304,7 +311,7 @@ var appEnv = [
   { name: 'STRIPE_TAX_ENABLED', value: 'false' } // set 'true' after Stripe Tax registrations exist
   { name: 'CHATBOT_MODEL', value: 'claude-sonnet-5' }
   { name: 'DATABASE_URL', secretRef: 'database-url' }
-  { name: 'DIRECT_DATABASE_URL', secretRef: 'database-url' }
+  { name: 'DIRECT_DATABASE_URL', secretRef: 'direct-database-url' }
   { name: 'REDIS_URL', secretRef: 'redis-url' }
   { name: 'AUTH_SECRET', secretRef: 'auth-secret' }
   { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'azure-storage-connection-string' }
