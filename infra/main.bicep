@@ -73,6 +73,29 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   properties: { adminUserEnabled: false }
 }
 
+// One user-assigned identity shared by web + worker + jobs. Granting AcrPull to
+// a standalone UAMI (instead of each app's system identity) breaks the
+// create-time race: the role exists before any container tries to pull.
+resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: '${envPrefix}-id'
+  location: location
+  tags: tags
+}
+
+var acrPullRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+)
+resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, uami.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: uami.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // PostgreSQL Flexible Server
 // ---------------------------------------------------------------------------
@@ -287,9 +310,15 @@ var appEnv = [
 var registries = [
   {
     server: acr.properties.loginServer
-    identity: 'system'
+    identity: uami.id
   }
 ]
+var appIdentity = {
+  type: 'UserAssigned'
+  userAssignedIdentities: {
+    '${uami.id}': {}
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Web app  — default CMD (node server.js)
@@ -298,7 +327,8 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${envPrefix}-web'
   location: location
   tags: tags
-  identity: { type: 'SystemAssigned' }
+  identity: appIdentity
+  dependsOn: [acrPull]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -364,7 +394,8 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${envPrefix}-worker'
   location: location
   tags: tags
-  identity: { type: 'SystemAssigned' }
+  identity: appIdentity
+  dependsOn: [acrPull]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -397,7 +428,8 @@ resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${envPrefix}-cron-reminders'
   location: location
   tags: tags
-  identity: { type: 'SystemAssigned' }
+  identity: appIdentity
+  dependsOn: [acrPull]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -431,7 +463,8 @@ resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${envPrefix}-cron-retry'
   location: location
   tags: tags
-  identity: { type: 'SystemAssigned' }
+  identity: appIdentity
+  dependsOn: [acrPull]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -468,7 +501,8 @@ resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
   name: '${envPrefix}-migrate'
   location: location
   tags: tags
-  identity: { type: 'SystemAssigned' }
+  identity: appIdentity
+  dependsOn: [acrPull]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -493,62 +527,8 @@ resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Let every app / job pull the image from ACR with its managed identity.
-// (Key Vault "Secrets User" is granted out of band — see docs/deployment/keyvault.md.)
-// ---------------------------------------------------------------------------
-var acrPullRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '7f951dda-4ed3-4680-a7ca-43fe172d538d'
-)
-// One explicit assignment per identity. A `for` loop can't be used here: its
-// iterator (the array) must be knowable at the start of the deployment, and
-// `<app>.identity.principalId` is only known after the app is created (BCP178).
-resource acrPullWeb 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, web.id, 'acrpull')
-  scope: acr
-  properties: {
-    roleDefinitionId: acrPullRoleId
-    principalId: web.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-resource acrPullWorker 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, worker.id, 'acrpull')
-  scope: acr
-  properties: {
-    roleDefinitionId: acrPullRoleId
-    principalId: worker.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-resource acrPullReminders 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, remindersJob.id, 'acrpull')
-  scope: acr
-  properties: {
-    roleDefinitionId: acrPullRoleId
-    principalId: remindersJob.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-resource acrPullRetry 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, retryMessagesJob.id, 'acrpull')
-  scope: acr
-  properties: {
-    roleDefinitionId: acrPullRoleId
-    principalId: retryMessagesJob.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-resource acrPullMigrate 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, migrateJob.id, 'acrpull')
-  scope: acr
-  properties: {
-    roleDefinitionId: acrPullRoleId
-    principalId: migrateJob.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// AcrPull is granted once, to the shared user-assigned identity, up next to the
+// ACR + UAMI definitions (resource `acrPull`).
 
 output acrLoginServer string = acr.properties.loginServer
 output webFqdn string = web.properties.configuration.ingress.fqdn
