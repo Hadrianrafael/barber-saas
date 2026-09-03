@@ -20,6 +20,15 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# `next build` collects page data, which loads src/env.ts and validates the
+# environment. Real values are injected at runtime by Container Apps; these
+# format-valid placeholders only satisfy the schema during the build and never
+# reach the runtime image (the `runner` stage starts FROM base, fresh).
+ENV APP_URL=https://build.local \
+    DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    DIRECT_DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    REDIS_URL=redis://localhost:6379 \
+    AUTH_SECRET=build-only-placeholder-not-used-at-runtime
 RUN npx prisma generate && npm run build
 
 # ---- runtime (web + worker in one image) ----------------------------
