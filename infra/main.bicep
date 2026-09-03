@@ -258,7 +258,10 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // resources, so they are real from day one.
 var dbUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
 // Internal-only, no auth, no TLS — isolated to the Container Apps env network.
-var redisUrl = 'redis://${envPrefix}-redis.internal.${cae.properties.defaultDomain}:6379'
+// TCP ingress between apps in the same environment is reached by the plain app
+// name (the `.internal.<defaultDomain>` FQDN form is HTTP-only and does not
+// route TCP — it was the cause of the `connect ETIMEDOUT` from web/worker).
+var redisUrl = 'redis://${envPrefix}-redis:6379'
 // Azure public cloud suffix (brazilsouth). Change for sovereign/gov clouds.
 var storageSuffix = 'core.windows.net'
 var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${storageSuffix}'
