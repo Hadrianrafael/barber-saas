@@ -136,7 +136,7 @@ IaC completo em `infra/main.bicep` — um template por ambiente
   env.
 - **Uma imagem, três papéis**: `barber-<env>-web` (CMD default `node server.js`),
   `barber-<env>-worker` (`npx tsx src/worker/index.ts`),
-  `barber-<env>-cron-reminders` (`*/15`), `barber-<env>-cron-retry-messages`
+  `barber-<env>-cron-reminders` (`*/15`), `barber-<env>-cron-retry`
   (`*/5`), `barber-<env>-migrate` (manual, `npx prisma migrate deploy` dentro do
   CAE). Dockerfile refeito como um único stage `runner`.
 - **Todos os slots de secret declarados** (placeholder vazio) + env wiring:
@@ -288,7 +288,7 @@ automatizado de isolamento cross-tenant; revisão profunda OWASP Top 10.
 | Relação `Review.employee` no schema | ADR 0011 / database.md |
 | Hardening de rede Azure (VNet PG/Redis, private endpoints, Front Door/WAF) | infra/README.md / azure.md |
 
-**Resolvido nesta auditoria de lançamento:** job `cron-retry-messages` +
+**Resolvido nesta auditoria de lançamento:** job `cron-retry` +
 `-migrate` adicionados ao Bicep; nomes de recurso consistentes entre Bicep e
 `deploy.yml`; Dockerfile de imagem única (web + worker + jobs); todos os slots de
 secret declarados no Bicep; probes liveness/readiness/startup separados;
@@ -364,7 +364,7 @@ STRIPE_SECRET_KEY=sk_test_xxx npm run stripe:sync-plans
 
 | `4bfa2a2` | Stripe — finalização (Products/Prices como dados + `stripe:sync-plans`, upgrade/downgrade in-place, verificação de `event.account` no Connect, `subscription.resumed` + `charge.refunded` no SaaS, Stripe Tax opt-in, idempotency keys, logs financeiros estruturados). ADR 0013, `docs/STRIPE.md` |
 | `beea4ae` | docs: hash da finalização Stripe no relatório |
-| `53183ec` | **Preparação de lançamento** — correção de vazamento cross-tenant na fidelidade; injeção de fórmula CSV mitigada; Bicep/Dockerfile/deploy.yml consistentes (imagem única, nomes `barber-<env>-*`, jobs `cron-retry-messages` + `-migrate`, probes separados, todos os secrets declarados); `tenant-isolation` + `golden-path` E2E. |
+| `53183ec` | **Preparação de lançamento** — correção de vazamento cross-tenant na fidelidade; injeção de fórmula CSV mitigada; Bicep/Dockerfile/deploy.yml consistentes (imagem única, nomes `barber-<env>-*`, jobs `cron-retry` + `-migrate`, probes separados, todos os secrets declarados); `tenant-isolation` + `golden-path` E2E. |
 | *(este lote)* | **Fase de configuração** — scripts `check:env`/`preflight`/`smoke`/`keyvault:push` (nunca imprimem secret); Bicep com `AcrPull` para as identidades + fix `az.environment()` + validação no CI; `.gitignore` cobre `.env.*`/`secrets/`; CI com `npm audit` (critical) + `az bicep build`; docs `GO-LIVE-CHECKLIST.md`, `deployment/keyvault.md`, `deployment/domain.md`, `deployment/backup-recovery.md`, `AZURE-COST-CHECKLIST.md`. ADR 0015. **Sem mudança de escopo.** |
 
 ADRs: `docs/adr/0001`–`0015`. Runbook: `docs/GO-LIVE.md`.

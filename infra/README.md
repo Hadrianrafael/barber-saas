@@ -13,13 +13,13 @@
 | Container Registry | `barberacr<hash>` | one image: `barber-saas:<tag>` |
 | PostgreSQL Flexible Server 16 | `barber-<env>-pg-<hash>` | database `barber` |
 | Azure Cache for Redis | `barber-<env>-redis-<hash>` | session cache, rate limiting, BullMQ |
-| Storage + `uploads` container | `barber<env>st<hash>` | Blob object storage |
-| Key Vault | `barber-<env>-kv-<hash>` | secret values |
+| Storage + `uploads` container | `barber<slug>st<hash>` (`slug` = dev/stg/prd) | Blob object storage |
+| Key Vault | `barber-<slug>-kv-<hash>` (`slug` = dev/stg/prd) | secret values |
 | Container Apps env | `barber-<env>-cae` | runtime |
 | Container App `-web` | `barber-<env>-web` | Next.js standalone, external ingress; probes `/api/health/live` (liveness/startup) + `/api/health` (readiness) |
 | Container App `-worker` | `barber-<env>-worker` | BullMQ worker (`npx tsx src/worker/index.ts`) |
 | Job `-cron-reminders` | `barber-<env>-cron-reminders` | schedule `*/15 * * * *` |
-| Job `-cron-retry-messages` | `barber-<env>-cron-retry-messages` | schedule `*/5 * * * *` |
+| Job `-cron-retry` | `barber-<env>-cron-retry` | schedule `*/5 * * * *` (message retry) |
 | Job `-migrate` | `barber-<env>-migrate` | manual — `npx prisma migrate deploy` (run before routing traffic) |
 
 **One image, three roles.** The web app uses the image default CMD
@@ -29,21 +29,23 @@
 
 ## Deploy (per environment)
 
+The ACR name is `uniqueString`-derived, so it isn't known before the first
+deploy. Use the helper, which deploys the template twice (bootstrap public image
+→ `az acr build` → real image):
+
 ```bash
-az group create -n barber-staging -l brazilsouth
-
-az acr build -r <acr> -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .
-
-az deployment group create -g barber-staging -f infra/main.bicep \
-  -p namePrefix=barber environment=staging \
-     image=<acr>.azurecr.io/barber-saas:<tag> \
-     pgAdminLogin=barberadmin pgAdminPassword='<generate>' \
-     appUrl=https://staging.app.example.com
+az login && az account set --subscription "<sub>"
+export RG=barber-staging LOCATION=brazilsouth APP_URL=https://staging.<domain>
+export PG_ADMIN_LOGIN=barberadmin PG_ADMIN_PASSWORD='<openssl rand -base64 24>'
+npm run provision:staging      # = bash scripts/azure/provision-staging.sh
 
 # first run only — create the plans + super admin
 az containerapp job start -g barber-staging -n barber-staging-migrate
 SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... npm run db:seed   # against the staging DB
 ```
+
+See [`../docs/deployment/azure.md`](../docs/deployment/azure.md) §1 for the
+manual two-pass equivalent.
 
 After the first deploy, `.github/workflows/deploy.yml` does build → migrate job →
 roll web/worker/jobs → readiness smoke check on every push (staging) or manual

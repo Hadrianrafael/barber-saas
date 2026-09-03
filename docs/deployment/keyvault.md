@@ -1,8 +1,10 @@
 # Azure Key Vault — secrets
 
-Every runtime secret lives in Key Vault (`barber-<env>-kv-<hash>`), referenced by
+Every runtime secret lives in Key Vault (`barber-<slug>-kv-<hash>`, where `slug`
+is `dev` / `stg` / `prd` — Key Vault names are capped at 24 chars), referenced by
 the Container Apps as `secretRef`. **Never** in Git, in the Docker image, in
-logs, or in a public doc.
+logs, or in a public doc. The exact name is the `keyVaultName` output of the
+Bicep deployment — read it, don't guess.
 
 `infra/main.bicep` declares **16 secret slots** with empty placeholder values.
 The app (`src/env.ts`) treats an empty value as "not configured" and degrades
@@ -41,8 +43,8 @@ Each Container App and Job has a **system-assigned identity**. Give each one the
 `Key Vault Secrets User` role on the vault:
 
 ```bash
-KV_ID=$(az keyvault show -n barber-staging-kv-xxxx --query id -o tsv)
-for app in web worker cron-reminders cron-retry-messages migrate; do
+KV_ID=$(az keyvault show -n barber-stg-kv-xxxx --query id -o tsv)
+for app in web worker cron-reminders cron-retry migrate; do
   PID=$(az containerapp $( [ $app = web ] || [ $app = worker ] && echo "" || echo "job" ) \
         show -g barber-staging -n barber-staging-$app --query identity.principalId -o tsv 2>/dev/null) || true
   [ -n "$PID" ] && az role assignment create --role "Key Vault Secrets User" \
@@ -61,8 +63,8 @@ Key Vault Secrets User → each app's managed identity.)
 
 ```bash
 az login
-npm run keyvault:push -- --vault barber-staging-kv-xxxx --file .env.staging --dry-run   # preview (no values shown)
-npm run keyvault:push -- --vault barber-staging-kv-xxxx --file .env.staging             # apply
+npm run keyvault:push -- --vault barber-stg-kv-xxxx --file .env.staging --dry-run   # preview (no values shown)
+npm run keyvault:push -- --vault barber-stg-kv-xxxx --file .env.staging             # apply
 ```
 
 The script maps env-var names → Key Vault secret names, skips empty vars, never
@@ -71,9 +73,9 @@ prints a value, and is idempotent (Key Vault versions each secret).
 **Option B — by hand:**
 
 ```bash
-az keyvault secret set --vault-name barber-staging-kv-xxxx --name auth-secret \
+az keyvault secret set --vault-name barber-stg-kv-xxxx --name auth-secret \
   --value "$(openssl rand -base64 48)" --output none
-az keyvault secret set --vault-name barber-staging-kv-xxxx --name stripe-secret-key \
+az keyvault secret set --vault-name barber-stg-kv-xxxx --name stripe-secret-key \
   --value "sk_test_..." --output none
 # ...repeat for each slot you have a value for
 ```
@@ -99,7 +101,7 @@ secrets at startup.
 ## 4. Verify (without revealing values)
 
 ```bash
-az keyvault secret list --vault-name barber-staging-kv-xxxx --query "[].name" -o tsv
+az keyvault secret list --vault-name barber-stg-kv-xxxx --query "[].name" -o tsv
 # then, inside a running container:
 az containerapp exec -g barber-staging -n barber-staging-web --command "npm run check:env"
 ```

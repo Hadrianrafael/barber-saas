@@ -20,7 +20,7 @@ no Bicep resource, secrets weren't wired) plus one real cross-tenant defect.
 
 2. **Bicep is the source of truth for names and wiring.** Resources are
    `barber-<environment>-<role>` (`web`, `worker`, `cron-reminders`,
-   `cron-retry-messages`, `migrate`). `deploy.yml` maps the GitHub Environment
+   `cron-retry`, `migrate`). `deploy.yml` maps the GitHub Environment
    name (`staging` | `production`) to the Bicep short name (`staging` | `prod`)
    and targets those names. `infra/README.md`, `docs/deployment/azure.md` and the
    new `docs/GO-LIVE.md` all match.

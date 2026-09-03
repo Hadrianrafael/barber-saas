@@ -18,24 +18,53 @@ Database for PostgreSQL Flexible Server 16**, **Azure Cache for Redis**, **Azure
 Blob Storage**, **Azure Key Vault**, **Azure Container Registry**.
 
 Environments: `dev` / `staging` / `prod` — one resource group each, the same
-Bicep template (`infra/main.bicep`) parameterised by `environment`. All resource
+Bicep template (`infra/main.bicep`) parameterised by `environment`. Most resource
 names are `barber-<env>-<role>` (e.g. `barber-staging-web`, `barber-prod-worker`).
+Storage and Key Vault use a 3-letter slug (`dev` / `stg` / `prd`) instead of the
+full env name because Azure caps those names at 24 chars:
+`barber<slug>st<hash>` and `barber-<slug>-kv-<hash>`. Read the real names from the
+deployment outputs (`keyVaultName`, `acrLoginServer`) — do not hard-code them.
 
 ## 1. Provision (per environment)
+
+**One-shot helper** (does everything below, idempotently, no secret values):
+
+```bash
+az login
+az account set --subscription "<sub>"
+export RG=barber-staging LOCATION=brazilsouth APP_URL=https://staging.<your-domain>
+export PG_ADMIN_LOGIN=barberadmin PG_ADMIN_PASSWORD='<openssl rand -base64 24>'
+npm run provision:staging
+```
+
+The ACR name is derived by the Bicep (`uniqueString`), so it cannot be known
+before the first deployment. The helper resolves the chicken-and-egg by deploying
+the template **twice**: pass 1 with a public bootstrap image just to materialise
+the ACR (+ all other resources), then `az acr build`, then pass 2 with the real
+image. The web revision is briefly Unhealthy and the worker/jobs crashloop
+between the passes — expected, cleared by pass 2.
+
+Manual equivalent:
 
 ```bash
 az group create -n barber-staging -l brazilsouth
 
-# one image runs every role (web default CMD; worker + jobs override command)
-az acr build -r <acr-name> -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .
-
-az deployment group create \
-  -g barber-staging \
-  -f infra/main.bicep \
+# pass 1 — bootstrap (public image) to create the ACR + infra
+az deployment group create -g barber-staging -f infra/main.bicep \
   -p namePrefix=barber environment=staging \
-     image=<acr>.azurecr.io/barber-saas:<tag> \
-     pgAdminLogin=barberadmin \
-     pgAdminPassword='<generate>' \
+     image=mcr.microsoft.com/k8se/quickstart:latest \
+     pgAdminLogin=barberadmin pgAdminPassword='<generate>' \
+     appUrl=https://staging.<your-domain>
+ACR=$(az deployment group show -g barber-staging -n main --query properties.outputs.acrLoginServer.value -o tsv)
+
+# one image runs every role (web default CMD; worker + jobs override command)
+az acr build -r "${ACR%%.*}" -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .
+
+# pass 2 — real image
+az deployment group create -g barber-staging -f infra/main.bicep \
+  -p namePrefix=barber environment=staging \
+     image=$ACR/barber-saas:<tag> \
+     pgAdminLogin=barberadmin pgAdminPassword='<generate>' \
      appUrl=https://staging.<your-domain>
 ```
 
@@ -47,7 +76,7 @@ Creates: Log Analytics, ACR, Postgres Flexible Server, Redis, a Storage account
 | `barber-<env>-web` | Next.js standalone, external ingress, default CMD `node server.js` |
 | `barber-<env>-worker` | BullMQ consumer — `command: npx tsx src/worker/index.ts` |
 | `barber-<env>-cron-reminders` | schedule `*/15 * * * *` |
-| `barber-<env>-cron-retry-messages` | schedule `*/5 * * * *` |
+| `barber-<env>-cron-retry` | schedule `*/5 * * * *` |
 | `barber-<env>-migrate` | **manual** trigger — `npx prisma migrate deploy` (runs inside the CAE, so it can reach a VNet DB) |
 
 `DATABASE_URL`, `REDIS_URL` and `AZURE_STORAGE_CONNECTION_STRING` are derived
@@ -60,7 +89,7 @@ The Bicep declares **every integration secret slot** with an empty placeholder.
 cleanly — nothing is simulated. To activate:
 
 1. Grant each Container App / Job **system-assigned identity** the
-   `Key Vault Secrets User` role on `barber-<env>-kv-…`.
+   `Key Vault Secrets User` role on `barber-<slug>-kv-…`.
 2. `az keyvault secret set` every value (names match the `secrets[]` entries;
    where to obtain each is in
    [`environment-variables.md`](environment-variables.md) and
@@ -90,7 +119,7 @@ migration is ever auto-run.
 - **production** is `workflow_dispatch`, gated by the `production` GitHub
   Environment (required reviewers).
 - Flow: `az acr build` (one image) → start the `-migrate` job + wait → roll
-  `-web`, `-worker`, `-cron-reminders`, `-cron-retry-messages` with the new
+  `-web`, `-worker`, `-cron-reminders`, `-cron-retry` with the new
   image → readiness smoke check.
 - No `az … delete`. Rollback = re-run with an older SHA, or
   `az containerapp revision set-active`.

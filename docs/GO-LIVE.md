@@ -126,7 +126,7 @@ az deployment group create -g barber-staging -f infra/main.bicep \
 
 Provisions: Log Analytics, ACR, Postgres Flexible Server 16, Azure Cache for
 Redis, Storage + `uploads` container, Key Vault, Container Apps env, `-web`,
-`-worker`, `-cron-reminders`, `-cron-retry-messages`, `-migrate` (manual).
+`-worker`, `-cron-reminders`, `-cron-retry`, `-migrate` (manual).
 Names: `barber-staging-web`, `barber-prod-web`, etc.
 
 `DATABASE_URL`, `REDIS_URL`, `AZURE_STORAGE_CONNECTION_STRING` are wired from the
@@ -137,23 +137,23 @@ provisioned resources automatically.
 ## 8. Configure Key Vault + first migration + seed 🤖
 
 1. 🤖 Grant each Container App / Job **system-assigned identity** the
-   `Key Vault Secrets User` role on `barber-<env>-kv-…`.
+   `Key Vault Secrets User` role on `barber-<slug>-kv-…`.
 2. 🤖 Put every secret value in Key Vault (names = the `secrets[]` entries in
    `infra/main.bicep`; where to get each = [`deployment/environment-variables.md`](deployment/environment-variables.md)):
    ```bash
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name auth-secret               --value "$(openssl rand -base64 48)"
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name stripe-secret-key         --value "sk_test_..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name stripe-webhook-secret     --value "whsec_..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name stripe-connect-webhook-secret --value "whsec_..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name resend-api-key            --value "re_..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name anthropic-api-key         --value "sk-ant-..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name whatsapp-phone-number-id  --value "..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name whatsapp-business-account-id --value "..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name whatsapp-access-token     --value "..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name whatsapp-webhook-verify-token --value "..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name whatsapp-app-secret       --value "..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name stripe-publishable-key    --value "pk_test_..."
-   az keyvault secret set --vault-name barber-staging-kv-xxxx --name sentry-dsn                --value ""   # optional
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name auth-secret               --value "$(openssl rand -base64 48)"
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name stripe-secret-key         --value "sk_test_..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name stripe-webhook-secret     --value "whsec_..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name stripe-connect-webhook-secret --value "whsec_..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name resend-api-key            --value "re_..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name anthropic-api-key         --value "sk-ant-..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name whatsapp-phone-number-id  --value "..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name whatsapp-business-account-id --value "..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name whatsapp-access-token     --value "..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name whatsapp-webhook-verify-token --value "..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name whatsapp-app-secret       --value "..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name stripe-publishable-key    --value "pk_test_..."
+   az keyvault secret set --vault-name barber-stg-kv-xxxx --name sentry-dsn                --value ""   # optional
    ```
 3. 🤖 In `infra/main.bicep`, change each `secrets[]` entry from `value: ''` to
    `keyVaultUrl: '<vault-uri>/secrets/<name>'` + `identity: 'system'`, and
@@ -298,7 +298,7 @@ Azure
 [ ] ACR: image `barber-saas:<tag>` pushed
 [ ] Container App -web: running, ingress bound, /api/health = healthy
 [ ] Container App -worker: running (BullMQ consuming)
-[ ] Jobs -cron-reminders (*/15) and -cron-retry-messages (*/5) scheduled
+[ ] Jobs -cron-reminders (*/15) and -cron-retry (*/5) scheduled
 [ ] Job -migrate ran; `prisma migrate status` clean
 [ ] `npm run db:seed` ran once (3 plans + super admin)
 

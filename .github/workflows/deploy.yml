@@ -72,15 +72,18 @@ jobs:
       # once, before any app picks up the new image. Forward-only.
       - name: Run database migrations
         run: |
-          az containerapp job update -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" --image "$IMAGE"
-          az containerapp job start  -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" --output none
-          # wait for completion
+          set -euo pipefail
+          JOB="$PREFIX-$ENV_SHORT-migrate"
+          az containerapp job update -g "$RG" -n "$JOB" --image "$IMAGE" --output none
+          EXEC=$(az containerapp job start -g "$RG" -n "$JOB" --query name -o tsv)
+          echo "started execution: $EXEC"
           for i in $(seq 1 40); do
-            status=$(az containerapp job execution list -g "$RG" -n "$PREFIX-$ENV_SHORT-migrate" \
-              --query "[0].properties.status" -o tsv)
+            status=$(az containerapp job execution show -g "$RG" -n "$JOB" --job-execution-name "$EXEC" \
+              --query "properties.status" -o tsv 2>/dev/null || echo "Unknown")
             echo "migrate job: $status"
             [ "$status" = "Succeeded" ] && break
             [ "$status" = "Failed" ] && { echo "::error::migration job failed"; exit 1; }
+            [ "$i" = "40" ] && { echo "::error::migration job timed out"; exit 1; }
             sleep 15
           done
 
@@ -91,7 +94,7 @@ jobs:
 
       - name: Roll scheduled jobs
         run: |
-          for job in cron-reminders cron-retry-messages; do
+          for job in cron-reminders cron-retry; do
             az containerapp job update -g "$RG" -n "$PREFIX-$ENV_SHORT-$job" --image "$IMAGE" --output none \
               || echo "job $PREFIX-$ENV_SHORT-$job not found, skipping"
           done

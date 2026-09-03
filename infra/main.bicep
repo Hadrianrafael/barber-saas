@@ -42,6 +42,8 @@ var tags = {
 }
 var suffix = uniqueString(resourceGroup().id, namePrefix, environment)
 var envPrefix = '${namePrefix}-${environment}'
+// Short slug for resources with tight name-length limits (Storage ≤24, Key Vault ≤24).
+var envSlug = environment == 'prod' ? 'prd' : (environment == 'staging' ? 'stg' : 'dev')
 
 // ---------------------------------------------------------------------------
 // Observability
@@ -129,7 +131,8 @@ resource redis 'Microsoft.Cache/redis@2024-03-01' = {
 // Storage (Blob) for uploads (logos, covers, photos, avatars)
 // ---------------------------------------------------------------------------
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: '${namePrefix}${environment}st${suffix}'
+  // Storage account names: 3–24 chars, lowercase alphanumeric only.
+  name: '${namePrefix}${envSlug}st${take(suffix, 10)}'
   location: location
   tags: tags
   sku: { name: isProd ? 'Standard_ZRS' : 'Standard_LRS' }
@@ -153,7 +156,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 // Key Vault — populate secret VALUES out of band, then point `secrets[]` here
 // ---------------------------------------------------------------------------
 resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: '${envPrefix}-kv-${suffix}'
+  // Key Vault names: 3–24 chars, alphanumeric + hyphens, start with a letter.
+  name: '${namePrefix}-${envSlug}-kv-${take(suffix, 8)}'
   location: location
   tags: tags
   properties: {
@@ -392,7 +396,8 @@ resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
 }
 
 resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
-  name: '${envPrefix}-cron-retry-messages'
+  // Container Apps job names: ≤32 chars — keep the suffix short.
+  name: '${envPrefix}-cron-retry'
   location: location
   tags: tags
   identity: { type: 'SystemAssigned' }

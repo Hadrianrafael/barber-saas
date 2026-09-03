@@ -113,16 +113,17 @@ Sem a key: toda mensagem do chat cai na fila humana (`PENDING_HUMAN`) — nunca 
 
 | # | Item | Resp. | Onde / comando | Dependência | Validar |
 |---|---|---|---|---|---|
-| F1 | `infra/main.bicep` — Log Analytics, ACR, PG Flexible 16, Redis, Blob, Key Vault, CAE, web, worker, `cron-reminders`, `cron-retry-messages`, `migrate` | Claude | `infra/main.bicep` | — | `az bicep build --file infra/main.bicep` sem erro |
-| F2 | Resource group por ambiente | Hadrian | `az group create -n barber-staging -l brazilsouth` | A1 | `az group show -n barber-staging` |
-| F3 | Build da imagem única | Hadrian | `az acr build -r <acr> -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .` | F2 (ou ACR) | imagem no ACR (`az acr repository show-tags`) |
-| F4 | `az deployment group create` (params em `deployment/azure.md`) | Hadrian | terminal | F2, F3 | `az deployment group show` = `Succeeded`; outputs `webFqdn` / `keyVaultName` |
+| F1 | `infra/main.bicep` — Log Analytics, ACR, PG Flexible 16, Redis, Blob, Key Vault, CAE, web, worker, `cron-reminders`, `cron-retry`, `migrate` | Claude | `infra/main.bicep` | — | `az bicep build --file infra/main.bicep` sem erro |
+| F1a | **Helper único** `scripts/azure/provision-staging.sh` — RG → 1ª passada (materializa ACR/PG/Redis/Blob/KV/CAE/apps com imagem pública) → `az acr build` → 2ª passada com a imagem real. Idempotente, sem secret. | Claude | `npm run provision:staging` (após `az login` + exports do cabeçalho do script) | F1 | script termina com `staging infra provisioned` + imprime outputs |
+| F2 | Resource group por ambiente | Hadrian | `az group create -n barber-staging -l brazilsouth` (o helper F1a já faz) | A1 | `az group show -n barber-staging` |
+| F3 | Build da imagem única | Hadrian | `az acr build -r <acr> -t barber-saas:$(git rev-parse --short HEAD) --file Dockerfile .` (o helper F1a já faz) | F2 (ACR criado na 1ª passada) | imagem no ACR (`az acr repository show-tags`) |
+| F4 | `az deployment group create` — `-p namePrefix=barber environment=staging image=<acr>/barber-saas:<tag> pgAdminLogin=barberadmin pgAdminPassword='<gerado, fora do chat>' appUrl=https://staging.<domínio>` | Hadrian | terminal (o helper F1a já faz as 2 passadas) | F2, F3 | `az deployment group show -n main` = `Succeeded`; outputs `webFqdn` / `keyVaultName` |
 | F5 | PostgreSQL alcançável | Hadrian | `npm run preflight` (com `DATABASE_URL` de staging) | F4 | `✓ PostgreSQL connected` |
 | F6 | Redis alcançável (`rediss://`) | Hadrian | `npm run preflight` | F4 | `✓ Redis PING → PONG` |
 | F7 | Storage + container `uploads` | Hadrian | `npm run preflight` | F4 | `✓ Azure Blob container reachable` |
 | F8 | Container App **web** rodando, ingress bound | Hadrian | `az containerapp show -n barber-staging-web` | F4 | `provisioningState` = `Succeeded`, tem FQDN |
 | F9 | Container App **worker** rodando | Hadrian | `az containerapp show -n barber-staging-worker` | F4 | replicas ≥ 1; logs mostram "worker started" |
-| F10 | Jobs `cron-reminders` (`*/15`) e `cron-retry-messages` (`*/5`) agendados | Hadrian | `az containerapp job list` | F4 | ambos listados, `triggerType` = `Schedule` |
+| F10 | Jobs `cron-reminders` (`*/15`) e `cron-retry` (`*/5`) agendados | Hadrian | `az containerapp job list` | F4 | ambos listados, `triggerType` = `Schedule` |
 | F11 | Job `migrate` existe (manual) | Hadrian | `az containerapp job show -n barber-staging-migrate` | F4 | `triggerType` = `Manual` |
 | F12 | Log Analytics recebendo logs | Hadrian | Portal → `barber-staging-logs` → Logs → `ContainerAppConsoleLogs_CL` | F8 | linhas recentes com `requestId` |
 
@@ -160,7 +161,7 @@ Sem a key: toda mensagem do chat cai na fila humana (`PENDING_HUMAN`) — nunca 
 |---|---|---|---|---|---|
 | I1 | 16 slots de secret declarados no Bicep + env wiring | Claude | `infra/main.bicep` (`appSecrets` / `appEnv`) | — | `grep -c "name: '" ` bate com 16 |
 | I2 | Identidade de cada Container App/Job com role **Key Vault Secrets User** | Hadrian | `az role assignment create --role "Key Vault Secrets User" --assignee <principalId> --scope <kv-id>` | F4 | `az role assignment list --scope <kv-id>` |
-| I3 | Valores dos secrets no Key Vault | Hadrian | `npm run keyvault:push -- --vault barber-staging-kv-xxxx --file .env.staging` (arquivo LOCAL, git-ignored) | I2, todas as chaves obtidas | `az keyvault secret list --vault-name <kv> --query "[].name"` lista os 13 setáveis |
+| I3 | Valores dos secrets no Key Vault | Hadrian | `npm run keyvault:push -- --vault barber-stg-kv-xxxx --file .env.staging` (arquivo LOCAL, git-ignored) | I2, todas as chaves obtidas | `az keyvault secret list --vault-name <kv> --query "[].name"` lista os 13 setáveis |
 | I4 | `secrets[]` do Bicep trocado de `value: ''` para `keyVaultUrl` + `identity: 'system'` + redeploy | Hadrian | editar `infra/main.bicep` + `az deployment group create` | I2, I3 | app sobe; `npm run check:env` (dentro de um `az containerapp exec`) mostra as integrações `configured` |
 | I5 | `database-url` / `redis-url` / `azure-storage-connection-string` derivados pelo Bicep — **não** setar manualmente | Claude | `infra/main.bicep` | — | — |
 | I6 | Nenhum secret no Git / imagem / logs | Claude | `.gitignore` (`.env.*`), `.dockerignore` (`.env*`), pino redaction, `logFinancialEvent` allowlist | — | `git grep` de padrões de secret = vazio |
@@ -229,7 +230,7 @@ Cartões de teste: <https://stripe.com/docs/testing>.
 | M2 | Criar os **dois webhooks live** (plataforma + Connect) nas URLs de prod | Hadrian | Stripe (live) → Developers → Webhooks | endpoints criados, `whsec_…` live copiados |
 | M3 | Customer portal (live) habilitado | Hadrian | Stripe (live) → Settings → Billing → Customer portal | ativo |
 | M4 | Connect (live): perfil, branding, statement descriptor | Hadrian | Stripe (live) → Connect → Settings | salvo |
-| M5 | Chaves live no Key Vault de prod (`sk_live_…`, `pk_live_…`, 2× `whsec_…` live) + redeploy | Hadrian | `npm run keyvault:push -- --vault barber-prod-kv-… --file .env.production` + redeploy | `check:env` → `Stripe mode: LIVE ⚠` |
+| M5 | Chaves live no Key Vault de prod (`sk_live_…`, `pk_live_…`, 2× `whsec_…` live) + redeploy | Hadrian | `npm run keyvault:push -- --vault barber-prd-kv-… --file .env.production` + redeploy | `check:env` → `Stripe mode: LIVE ⚠` |
 | M6 | `npm run stripe:sync-plans -- --allow-live` (cria Products/Prices live) | Hadrian | terminal com `STRIPE_SECRET_KEY=sk_live_…` | `Plan.stripePriceId` (live) preenchido |
 | M7 | (opcional, imposto internacional) Stripe → Tax → registrations → `STRIPE_TAX_ENABLED=true` na app prod + redeploy | Hadrian | Stripe → Tax | Checkout coleta endereço + `tax_id` |
 | M8 | Uma compra real de ponta a ponta com um cartão seu, depois **refund** | Hadrian | UI de prod | `Subscription` ACTIVE → refund → `REFUNDED` |
@@ -245,7 +246,7 @@ Cartões de teste: <https://stripe.com/docs/testing>.
 | N3 | Runbook de recuperação testado (restore para um servidor novo) | Hadrian | `deployment/backup-recovery.md` | restore conclui |
 | N4 | Rotação de secrets planejada (Stripe, tokens WhatsApp, `AUTH_SECRET`) | Hadrian | calendário / `deployment/keyvault.md` | processo documentado |
 | N5 | Revisão de custos (recursos cobrados, custo variável) | Hadrian | `AZURE-COST-CHECKLIST.md` + Cost Management | orçamento + alerta de budget criados |
-| N6 | `cron-reminders` e `cron-retry-messages` executando de fato | Hadrian | `az containerapp job execution list` | execuções recentes "Succeeded" |
+| N6 | `cron-reminders` e `cron-retry` executando de fato | Hadrian | `az containerapp job execution list` | execuções recentes "Succeeded" |
 | N7 | Hardening de rede (VNet PG/Redis, private endpoints, Front Door/WAF) — **antes de escala real** | Hadrian | `infra/README.md` "Hardening TODO" | planejado/agendado |
 | N8 | Playbook de incidente + status page (opcional) | Hadrian | — | existe |
 

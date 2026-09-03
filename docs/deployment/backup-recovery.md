@@ -97,7 +97,7 @@ BullMQ queues. Loss of Redis is a brief availability blip, not data loss.
 
 - `Standard` tier (prod) has replication + automatic failover.
 - If Redis is wiped: sessions require re-login; in-flight jobs that were queued
-  but not yet processed are lost — the messaging retry cron (`cron-retry-messages`)
+  but not yet processed are lost — the messaging retry cron (`cron-retry`)
   re-drives any `Message` left `FAILED`, and reminders re-compute on the next
   `cron-reminders` run. Campaign delivery is resumable (idempotent per
   recipient), but a `RUNNING` campaign interrupted mid-flight may need

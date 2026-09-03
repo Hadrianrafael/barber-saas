@@ -43,7 +43,7 @@ Nothing sensitive is shared between environments.
 
 | | development | staging | production |
 |---|---|---|---|
-| source | `.env` (git-ignored) | Azure Key Vault `barber-staging-kv-…` | Azure Key Vault `barber-prod-kv-…` |
+| source | `.env` (git-ignored) | Azure Key Vault `barber-stg-kv-…` | Azure Key Vault `barber-prd-kv-…` |
 | DB / Redis / Storage | `docker compose` locals | derived by Bicep from the provisioned resources | same |
 | Stripe keys | `sk_test_…` | `sk_test_…` | `sk_live_…` (only after §14 of GO-LIVE) |
 | Stripe webhooks | `stripe listen` | staging endpoints | production endpoints |
