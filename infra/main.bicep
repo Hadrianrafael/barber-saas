@@ -35,6 +35,10 @@ param pgAdminPassword string
 @description('Public base URL of the app for this environment, e.g. https://app.example.com')
 param appUrl string
 
+@secure()
+@description('App session signing secret (48+ random bytes). Generated per deploy; move to Key Vault for go-live.')
+param authSecret string
+
 var isProd = environment == 'prod'
 var tags = {
   app: 'barber-saas'
@@ -225,26 +229,28 @@ var storageSuffix = 'core.windows.net'
 var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${storageSuffix}'
 var storagePublicUrl = '${storage.properties.primaryEndpoints.blob}uploads'
 
-// Every integration secret SLOT. Empty until you swap `value` for a Key Vault
-// reference. `env.ts` treats an empty value as "not configured" and the feature
-// degrades cleanly — nothing is ever simulated.
+// Integration secret SLOTS. The Container Apps API rejects an empty secret
+// `value`, so unconfigured slots carry a single space — `env.ts` trims it back
+// to "" so `isConfigured.*` stays honest and every feature degrades cleanly.
+// Swap each for a Key Vault reference (`keyVaultUrl` + `identity`) at go-live.
+var unset = ' '
 var appSecrets = [
   { name: 'database-url', value: dbUrl }
   { name: 'redis-url', value: redisUrl }
-  { name: 'auth-secret', value: '' } // REQUIRED before go-live — 48+ random bytes
+  { name: 'auth-secret', value: authSecret }
   { name: 'azure-storage-connection-string', value: storageConn }
-  { name: 'stripe-secret-key', value: '' }
-  { name: 'stripe-publishable-key', value: '' }
-  { name: 'stripe-webhook-secret', value: '' }
-  { name: 'stripe-connect-webhook-secret', value: '' }
-  { name: 'resend-api-key', value: '' }
-  { name: 'anthropic-api-key', value: '' }
-  { name: 'whatsapp-phone-number-id', value: '' }
-  { name: 'whatsapp-business-account-id', value: '' }
-  { name: 'whatsapp-access-token', value: '' }
-  { name: 'whatsapp-webhook-verify-token', value: '' }
-  { name: 'whatsapp-app-secret', value: '' }
-  { name: 'sentry-dsn', value: '' }
+  { name: 'stripe-secret-key', value: unset }
+  { name: 'stripe-publishable-key', value: unset }
+  { name: 'stripe-webhook-secret', value: unset }
+  { name: 'stripe-connect-webhook-secret', value: unset }
+  { name: 'resend-api-key', value: unset }
+  { name: 'anthropic-api-key', value: unset }
+  { name: 'whatsapp-phone-number-id', value: unset }
+  { name: 'whatsapp-business-account-id', value: unset }
+  { name: 'whatsapp-access-token', value: unset }
+  { name: 'whatsapp-webhook-verify-token', value: unset }
+  { name: 'whatsapp-app-secret', value: unset }
+  { name: 'sentry-dsn', value: unset }
 ]
 
 var appEnv = [

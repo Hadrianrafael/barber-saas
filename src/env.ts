@@ -69,7 +69,14 @@ const schema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });
 
-const parsed = schema.safeParse(process.env);
+// Trim every incoming value first. Infra (Azure Container Apps) can't store an
+// empty secret, so unconfigured integration slots arrive as a single space;
+// trimming turns them back into "" so `isConfigured.*` below stays truthful.
+const rawEnv = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]),
+);
+
+const parsed = schema.safeParse(rawEnv);
 
 if (!parsed.success) {
   const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");

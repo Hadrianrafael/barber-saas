@@ -43,7 +43,7 @@ az account show >/dev/null 2>&1 || { echo "✗ not logged in — run 'az login' 
 az account set --subscription "$SUBSCRIPTION"
 ACTIVE_SUB="$(az account show --query id -o tsv)"
 [ "$ACTIVE_SUB" = "$SUBSCRIPTION" ] || { echo "✗ active subscription is $ACTIVE_SUB, expected $SUBSCRIPTION"; exit 1; }
-req RG; req LOCATION; req APP_URL; req PG_ADMIN_LOGIN; req PG_ADMIN_PASSWORD
+req RG; req LOCATION; req APP_URL; req PG_ADMIN_LOGIN; req PG_ADMIN_PASSWORD; req AUTH_SECRET
 SUB="$(az account show --query '[name, id]' -o tsv | tr '\t' ' ')"
 echo "  subscription : $SUB"
 echo "  resource grp : $RG   (region: $LOCATION)"
@@ -64,7 +64,7 @@ az deployment group create -g "$RG" -f "$BICEP" \
   -p namePrefix="$NAME_PREFIX" environment="$ENVIRONMENT" \
      image="$BOOTSTRAP_IMAGE" \
      pgAdminLogin="$PG_ADMIN_LOGIN" pgAdminPassword="$PG_ADMIN_PASSWORD" \
-     appUrl="$APP_URL" \
+     appUrl="$APP_URL" authSecret="$AUTH_SECRET" \
   -o none
 ACR_LOGIN_SERVER="$(az deployment group show -g "$RG" -n main --query properties.outputs.acrLoginServer.value -o tsv)"
 ACR_NAME="${ACR_LOGIN_SERVER%%.*}"
@@ -85,7 +85,7 @@ az deployment group create -g "$RG" -f "$BICEP" \
   -p namePrefix="$NAME_PREFIX" environment="$ENVIRONMENT" \
      image="$IMAGE" \
      pgAdminLogin="$PG_ADMIN_LOGIN" pgAdminPassword="$PG_ADMIN_PASSWORD" \
-     appUrl="$APP_URL" \
+     appUrl="$APP_URL" authSecret="$AUTH_SECRET" \
   -o none
 echo "  deployed"
 echo
