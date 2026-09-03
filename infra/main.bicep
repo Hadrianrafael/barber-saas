@@ -470,24 +470,54 @@ var acrPullRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 )
-var pullPrincipals = [
-  web.identity.principalId
-  worker.identity.principalId
-  remindersJob.identity.principalId
-  retryMessagesJob.identity.principalId
-  migrateJob.identity.principalId
-]
-resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for pid in pullPrincipals: {
-    name: guid(acr.id, pid, 'acrpull')
-    scope: acr
-    properties: {
-      roleDefinitionId: acrPullRoleId
-      principalId: pid
-      principalType: 'ServicePrincipal'
-    }
+// One explicit assignment per identity. A `for` loop can't be used here: its
+// iterator (the array) must be knowable at the start of the deployment, and
+// `<app>.identity.principalId` is only known after the app is created (BCP178).
+resource acrPullWeb 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, web.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: web.identity.principalId
+    principalType: 'ServicePrincipal'
   }
-]
+}
+resource acrPullWorker 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, worker.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: worker.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+resource acrPullReminders 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, remindersJob.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: remindersJob.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+resource acrPullRetry 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, retryMessagesJob.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: retryMessagesJob.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+resource acrPullMigrate 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(acr.id, migrateJob.id, 'acrpull')
+  scope: acr
+  properties: {
+    roleDefinitionId: acrPullRoleId
+    principalId: migrateJob.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 output acrLoginServer string = acr.properties.loginServer
 output webFqdn string = web.properties.configuration.ingress.fqdn
