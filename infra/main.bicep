@@ -110,20 +110,42 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
 }
 
 // ---------------------------------------------------------------------------
-// Redis
+// Redis — self-hosted as an internal Container App (STAGING decision).
+// Classic Azure Cache for Redis is closed to new creates in this subscription
+// and Azure Managed Redis is out of budget for staging. Scope: cache + BullMQ
+// queue storage only. No persistence: a restart drops in-flight jobs (the
+// cron-retry job re-drives messages) and caches simply repopulate.
+// Reachable only inside the Container Apps environment (internal TCP ingress).
 // ---------------------------------------------------------------------------
-resource redis 'Microsoft.Cache/redis@2024-03-01' = {
-  name: '${envPrefix}-redis-${suffix}'
+resource redisApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: '${envPrefix}-redis'
   location: location
   tags: tags
   properties: {
-    sku: {
-      name: isProd ? 'Standard' : 'Basic'
-      family: 'C'
-      capacity: isProd ? 1 : 0
+    managedEnvironmentId: cae.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: false
+        transport: 'tcp'
+        targetPort: 6379
+        exposedPort: 6379
+      }
     }
-    enableNonSslPort: false
-    minimumTlsVersion: '1.2'
+    template: {
+      containers: [
+        {
+          name: 'redis'
+          image: 'redis:7-alpine'
+          command: ['redis-server', '--protected-mode', 'no', '--save', '', '--appendonly', 'no']
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
   }
 }
 
@@ -196,7 +218,8 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // Derived connection strings — these come straight from the provisioned
 // resources, so they are real from day one.
 var dbUrl = 'postgresql://${pgAdminLogin}:${pgAdminPassword}@${pg.properties.fullyQualifiedDomainName}:5432/barber?sslmode=require'
-var redisUrl = 'rediss://:${redis.listKeys().primaryKey}@${redis.properties.hostName}:${redis.properties.sslPort}'
+// Internal-only, no auth, no TLS — isolated to the Container Apps env network.
+var redisUrl = 'redis://${envPrefix}-redis.internal.${cae.properties.defaultDomain}:6379'
 // Azure public cloud suffix (brazilsouth). Change for sovereign/gov clouds.
 var storageSuffix = 'core.windows.net'
 var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${storageSuffix}'
