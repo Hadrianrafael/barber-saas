@@ -136,6 +136,18 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
   }
 }
 
+// Azure PG Flexible Server blocks CREATE EXTENSION unless the extension is
+// allow-listed here. Migration 20260830000100 needs btree_gist for the
+// no-overlapping-appointments GiST exclusion constraint.
+resource pgExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2023-12-01-preview' = {
+  parent: pg
+  name: 'azure.extensions'
+  properties: {
+    value: 'BTREE_GIST'
+    source: 'user-override'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Redis — self-hosted as an internal Container App (STAGING decision).
 // Classic Azure Cache for Redis is closed to new creates in this subscription
@@ -328,7 +340,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, redisApp]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -352,23 +364,29 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
             {
               type: 'Liveness'
               httpGet: { path: '/api/health/live', port: 3000 }
-              initialDelaySeconds: 10
+              initialDelaySeconds: 15
               periodSeconds: 30
-              failureThreshold: 3
+              timeoutSeconds: 5
+              failureThreshold: 6
             }
             {
+              // Readiness hits the DB. First connection to Azure PG (TLS + auth)
+              // can take a few seconds — keep this tolerant so a cold pool or a
+              // transient dependency blip doesn't fail activation.
               type: 'Readiness'
               httpGet: { path: '/api/health', port: 3000 }
-              initialDelaySeconds: 5
+              initialDelaySeconds: 20
               periodSeconds: 15
-              failureThreshold: 3
+              timeoutSeconds: 10
+              failureThreshold: 10
             }
             {
               type: 'Startup'
               httpGet: { path: '/api/health/live', port: 3000 }
-              initialDelaySeconds: 5
-              periodSeconds: 5
-              failureThreshold: 12
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              timeoutSeconds: 5
+              failureThreshold: 30
             }
           ]
         }
@@ -395,7 +413,7 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, redisApp]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
