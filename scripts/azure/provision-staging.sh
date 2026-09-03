@@ -30,6 +30,8 @@ BICEP="infra/main.bicep"
 ENVIRONMENT="staging"
 NAME_PREFIX="${NAME_PREFIX:-barber}"
 BOOTSTRAP_IMAGE="mcr.microsoft.com/k8se/quickstart:latest"  # public; only used for the first pass
+# Hard-pin the target subscription so nothing can be provisioned into the wrong one.
+SUBSCRIPTION="${SUBSCRIPTION:-2dca76e6-18b9-4b11-97a4-de56e775974b}"
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "✗ '$1' not found — install it first."; exit 1; }; }
 req()  { [ -n "${!1:-}" ] || { echo "✗ env var \$$1 is not set (see header of this script)."; exit 1; }; }
@@ -37,7 +39,10 @@ req()  { [ -n "${!1:-}" ] || { echo "✗ env var \$$1 is not set (see header of 
 echo "== preflight =="
 need az
 [ -f "$BICEP" ] || { echo "✗ run this from the repo root ($BICEP not found)."; exit 1; }
-az account show >/dev/null 2>&1 || { echo "✗ not logged in — run 'az login' and 'az account set --subscription ...'"; exit 1; }
+az account show >/dev/null 2>&1 || { echo "✗ not logged in — run 'az login' first."; exit 1; }
+az account set --subscription "$SUBSCRIPTION"
+ACTIVE_SUB="$(az account show --query id -o tsv)"
+[ "$ACTIVE_SUB" = "$SUBSCRIPTION" ] || { echo "✗ active subscription is $ACTIVE_SUB, expected $SUBSCRIPTION"; exit 1; }
 req RG; req LOCATION; req APP_URL; req PG_ADMIN_LOGIN; req PG_ADMIN_PASSWORD
 SUB="$(az account show --query '[name, id]' -o tsv | tr '\t' ' ')"
 echo "  subscription : $SUB"
