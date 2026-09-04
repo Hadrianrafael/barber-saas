@@ -153,7 +153,7 @@ export async function processInbound(msg: InboundMessage): Promise<InboundResult
     conversationId: conv.id,
     lead,
     inboundText: body,
-    locale: conv ? cfg.defaultLocale : "pt-BR",
+    locale: cfg.defaultLocale,
     config: cfg,
   });
 
