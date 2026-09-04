@@ -51,15 +51,12 @@ export async function getLead(id: string) {
   });
 }
 
-export async function updateLead(
-  id: string,
-  input: unknown,
-  actorId: string,
-): Promise<SalesLead> {
+export async function updateLead(id: string, input: unknown, actorId: string): Promise<SalesLead> {
   const data = leadUpdateSchema.parse(input);
   const patch: Prisma.SalesLeadUpdateInput = { ...data } as Prisma.SalesLeadUpdateInput;
 
-  if (data.phone !== undefined) patch.phone = data.phone ? normalizePhone(data.phone) || null : null;
+  if (data.phone !== undefined)
+    patch.phone = data.phone ? normalizePhone(data.phone) || null : null;
   if (data.whatsapp !== undefined)
     patch.whatsapp = data.whatsapp ? normalizePhone(data.whatsapp) || null : null;
   if (data.email !== undefined) {
@@ -93,16 +90,17 @@ export async function setLeadStatus(
   if (lead.status === status) return;
   await prisma.salesLead.update({ where: { id }, data: { status } });
   await prisma.salesLeadEvent.create({
-    data: { leadId: id, kind: "status_change", actorId, data: { from: lead.status, to: status, ...meta } },
+    data: {
+      leadId: id,
+      kind: "status_change",
+      actorId,
+      data: { from: lead.status, to: status, ...meta },
+    },
   });
 }
 
 /** Opt a lead out on every channel and add to the suppression list. */
-export async function optOutLead(
-  id: string,
-  reason: string,
-  source: string,
-): Promise<void> {
+export async function optOutLead(id: string, reason: string, source: string): Promise<void> {
   const lead = await prisma.salesLead.findUniqueOrThrow({ where: { id } });
   await prisma.salesLead.update({
     where: { id },
@@ -119,7 +117,9 @@ export async function optOutLead(
     where: { leadId: id, status: "OPEN" },
     data: { status: "CLOSED" },
   });
-  await prisma.salesLeadEvent.create({ data: { leadId: id, kind: "opt_out", data: { reason, source } } });
+  await prisma.salesLeadEvent.create({
+    data: { leadId: id, kind: "opt_out", data: { reason, source } },
+  });
   logger.info({ leadId: id, source }, "sdr.lead.opt_out");
 }
 
@@ -130,7 +130,10 @@ export async function recordConsent(
   note: string | null,
   actorId: string,
 ): Promise<void> {
-  await prisma.salesLead.update({ where: { id }, data: { consentBasis: basis, consentNote: note } });
+  await prisma.salesLead.update({
+    where: { id },
+    data: { consentBasis: basis, consentNote: note },
+  });
   await prisma.salesLeadEvent.create({
     data: { leadId: id, kind: "consent_recorded", actorId, data: { basis } },
   });
@@ -156,7 +159,11 @@ export async function eraseLead(id: string, actorId: string): Promise<void> {
   });
 }
 
-export async function assignLead(id: string, userId: string | null, actorId: string): Promise<void> {
+export async function assignLead(
+  id: string,
+  userId: string | null,
+  actorId: string,
+): Promise<void> {
   await prisma.salesLead.update({ where: { id }, data: { assignedToId: userId } });
   await prisma.salesLeadEvent.create({
     data: { leadId: id, kind: "assigned", actorId, data: { userId } },

@@ -130,6 +130,15 @@ async function main() {
   console.warn(`✓ ${PLANS.length} plans upserted`);
 
   const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@barber.local").toLowerCase();
+  const isProdLike = process.env.NODE_ENV === "production" || process.env.APP_ENV === "staging";
+  if (!process.env.SEED_ADMIN_PASSWORD && isProdLike) {
+    console.error(
+      "✗ SEED_ADMIN_PASSWORD is required when NODE_ENV=production or APP_ENV=staging — " +
+        "refusing to create the platform admin with an insecure default. " +
+        "Set SEED_ADMIN_PASSWORD (and SEED_ADMIN_EMAIL) and re-run.",
+    );
+    process.exit(1);
+  }
   const password = process.env.SEED_ADMIN_PASSWORD ?? "changeme-admin-000";
   if (!process.env.SEED_ADMIN_PASSWORD) {
     console.warn(

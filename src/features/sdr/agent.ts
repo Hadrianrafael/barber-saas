@@ -3,7 +3,13 @@ import type { SalesAgentConfig, SalesLead } from "@prisma/client";
 import { chat } from "@/server/ai/openai";
 import { isConfigured } from "@/env";
 import { logger } from "@/lib/logger";
-import { getActiveAgentConfig, knowledgeOf, localeContent, type Knowledge, type LocaleContent } from "./agent-config";
+import {
+  getActiveAgentConfig,
+  knowledgeOf,
+  localeContent,
+  type Knowledge,
+  type LocaleContent,
+} from "./agent-config";
 import { buildModelContext, renderTemplate } from "./conversation";
 import { detectOptOut } from "./suppression";
 
@@ -53,14 +59,18 @@ function contentBlock(c: LocaleContent, vars: Record<string, string | undefined>
   if (c.pitch) lines.push(`Pitch curto: ${renderTemplate(c.pitch, vars)}`);
   if (c.cta) lines.push(`CTA: ${renderTemplate(c.cta, vars)}`);
   if (c.questions?.length)
-    lines.push(`Perguntas de qualificação:\n- ${c.questions.map((q) => renderTemplate(q, vars)).join("\n- ")}`);
+    lines.push(
+      `Perguntas de qualificação:\n- ${c.questions.map((q) => renderTemplate(q, vars)).join("\n- ")}`,
+    );
   if (c.objections?.length)
     lines.push(
       `Objeções e respostas aprovadas:\n${c.objections.map((o) => `- "${o.q}" → ${o.a}`).join("\n")}`,
     );
   if (c.offerDemoWhen) lines.push(`Ofereça demonstração: ${c.offerDemoWhen}`);
-  if (c.handoffWhen) lines.push(`Passe para humano (responda com ${HANDOFF_MARK} no fim): ${c.handoffWhen}`);
-  if (c.stopWhen) lines.push(`Encerre educadamente (responda com ${STOP_MARK} no fim): ${c.stopWhen}`);
+  if (c.handoffWhen)
+    lines.push(`Passe para humano (responda com ${HANDOFF_MARK} no fim): ${c.handoffWhen}`);
+  if (c.stopWhen)
+    lines.push(`Encerre educadamente (responda com ${STOP_MARK} no fim): ${c.stopWhen}`);
   return lines.join("\n");
 }
 
@@ -117,11 +127,19 @@ function fallbackReply(
   inbound: string,
 ): AgentTurn {
   const c = localeContent(cfg, locale);
-  const vars = { nome: lead.name ?? "", assistente: cfg.assistantName, empresa: cfg.companyName, barbearia: lead.barbershopName ?? "" };
+  const vars = {
+    nome: lead.name ?? "",
+    assistente: cfg.assistantName,
+    empresa: cfg.companyName,
+    barbearia: lead.barbershopName ?? "",
+  };
   const stop = detectOptOut(inbound);
   const reply = stop
     ? "Sem problema, vou encerrar por aqui. Se quiser retomar é só me chamar. Abraço!"
-    : renderTemplate(c.questions?.[0] ?? c.cta ?? "Posso te mostrar como funciona, sem compromisso?", vars);
+    : renderTemplate(
+        c.questions?.[0] ?? c.cta ?? "Posso te mostrar como funciona, sem compromisso?",
+        vars,
+      );
   return {
     reply,
     wantsHandoff: false,
@@ -172,7 +190,10 @@ export async function runAgentTurn(args: {
       usedFallback: false,
     };
   } catch (e) {
-    logger.error({ err: (e as Error).message, conversationId: args.conversationId }, "sdr.agent.turn_failed");
+    logger.error(
+      { err: (e as Error).message, conversationId: args.conversationId },
+      "sdr.agent.turn_failed",
+    );
     return fallbackReply(cfg, args.lead, locale, args.inboundText);
   }
 }

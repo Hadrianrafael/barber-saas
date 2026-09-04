@@ -33,7 +33,8 @@ export interface InboundMessage {
 }
 
 export interface InboundResult {
-  status: "ignored" | "duplicate" | "opted_out" | "handed_off" | "replied" | "queued_human" | "error";
+  status:
+    "ignored" | "duplicate" | "opted_out" | "handed_off" | "replied" | "queued_human" | "error";
   leadId?: string;
   conversationId?: string;
   detail?: string;
@@ -49,7 +50,11 @@ async function findLeadByPhone(raw: string): Promise<SalesLead | null> {
   });
 }
 
-async function raiseHandoffAlert(lead: SalesLead, conv: SalesConversation, why: string): Promise<void> {
+async function raiseHandoffAlert(
+  lead: SalesLead,
+  conv: SalesConversation,
+  why: string,
+): Promise<void> {
   await prisma.salesConversation.update({
     where: { id: conv.id },
     data: { handledBy: "HUMAN", status: "OPEN" },
@@ -165,7 +170,11 @@ export async function processInbound(msg: InboundMessage): Promise<InboundResult
     const q = await qualifyFromTranscript(transcript, cfg);
     await applyQualification(lead.id, q);
     if (q.tier === "QUENTE" || turn.wantsHandoff || q.signals.wantsHuman) {
-      await raiseHandoffAlert(lead, conv, turn.wantsHandoff ? "agent_flagged" : `qualified_${q.tier}`);
+      await raiseHandoffAlert(
+        lead,
+        conv,
+        turn.wantsHandoff ? "agent_flagged" : `qualified_${q.tier}`,
+      );
       // still send the AI's closing line, then a human takes over
     }
   } catch (e) {
@@ -178,7 +187,11 @@ export async function processInbound(msg: InboundMessage): Promise<InboundResult
 
   // 9. reply (respect replyMode; mirror inbound modality on MIXED)
   const replyKind: "TEXT" | "AUDIO" =
-    cfg.replyMode === "AUDIO" ? "AUDIO" : cfg.replyMode === "MIXED" && kind === "AUDIO" ? "AUDIO" : "TEXT";
+    cfg.replyMode === "AUDIO"
+      ? "AUDIO"
+      : cfg.replyMode === "MIXED" && kind === "AUDIO"
+        ? "AUDIO"
+        : "TEXT";
 
   const out = await sendOutbound({
     lead,

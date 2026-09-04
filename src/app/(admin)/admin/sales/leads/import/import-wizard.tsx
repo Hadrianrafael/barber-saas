@@ -33,7 +33,13 @@ type UploadData = {
   sampleRows: string[][];
 };
 
-type PreviewData = { total: number; valid: number; duplicates: number; errors: number; errorSamples: string[] };
+type PreviewData = {
+  total: number;
+  valid: number;
+  duplicates: number;
+  errors: number;
+  errorSamples: string[];
+};
 
 export function ImportWizard() {
   const router = useRouter();
@@ -44,7 +50,9 @@ export function ImportWizard() {
   const [defaultSource, setDefaultSource] = useState("");
   const [defaultTags, setDefaultTags] = useState("");
   const [preview, setPreview] = useState<PreviewData | null>(null);
-  const [done, setDone] = useState<{ imported: number; duplicates: number; errors: number } | null>(null);
+  const [done, setDone] = useState<{ imported: number; duplicates: number; errors: number } | null>(
+    null,
+  );
 
   function handleUpload(fd: FormData) {
     setErr(null);
@@ -96,9 +104,16 @@ export function ImportWizard() {
       {!upload && (
         <form action={handleUpload} className="space-y-3 rounded-md border p-4">
           <p className="text-sm text-muted-foreground">
-            Selecione um arquivo <code>.csv</code>, <code>.xlsx</code> ou <code>.xlsm</code> (até 8 MB).
+            Selecione um arquivo <code>.csv</code>, <code>.xlsx</code> ou <code>.xlsm</code> (até 8
+            MB).
           </p>
-          <input type="file" name="file" accept=".csv,.xlsx,.xlsm,text/csv" required className="text-sm" />
+          <input
+            type="file"
+            name="file"
+            accept=".csv,.xlsx,.xlsm,text/csv"
+            required
+            className="text-sm"
+          />
           <button
             type="submit"
             disabled={pending}
@@ -186,8 +201,8 @@ export function ImportWizard() {
           {preview && (
             <div className="rounded-md border p-4 text-sm">
               <p>
-                <strong>{preview.valid}</strong> válidos · <strong>{preview.duplicates}</strong> duplicados ·{" "}
-                <strong>{preview.errors}</strong> com erro · {preview.total} linhas
+                <strong>{preview.valid}</strong> válidos · <strong>{preview.duplicates}</strong>{" "}
+                duplicados · <strong>{preview.errors}</strong> com erro · {preview.total} linhas
               </p>
               {preview.errorSamples.length > 0 && (
                 <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground">
@@ -204,8 +219,8 @@ export function ImportWizard() {
       {done && (
         <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm">
           <p>
-            Importação concluída: <strong>{done.imported}</strong> criados, {done.duplicates} duplicados,{" "}
-            {done.errors} erros.
+            Importação concluída: <strong>{done.imported}</strong> criados, {done.duplicates}{" "}
+            duplicados, {done.errors} erros.
           </p>
           <button
             onClick={() => router.push("/admin/sales/leads")}

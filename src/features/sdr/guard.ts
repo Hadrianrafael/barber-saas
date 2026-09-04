@@ -28,7 +28,10 @@ export interface ContactDecision {
   recipient: string;
 }
 
-function recipientFor(lead: Pick<SalesLead, "whatsapp" | "phone" | "email">, channel: ContactChannel) {
+function recipientFor(
+  lead: Pick<SalesLead, "whatsapp" | "phone" | "email">,
+  channel: ContactChannel,
+) {
   if (channel === "EMAIL") return normalizeEmail(lead.email);
   return normalizePhone(lead.whatsapp) || normalizePhone(lead.phone);
 }

@@ -19,7 +19,9 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
     where: { campaignId: id },
     orderBy: { createdAt: "asc" },
     take: 200,
-    include: { lead: { select: { barbershopName: true, name: true, whatsapp: true, status: true } } },
+    include: {
+      lead: { select: { barbershopName: true, name: true, whatsapp: true, status: true } },
+    },
   });
   const counts = links.reduce<Record<string, number>>((a, l) => {
     a[l.state] = (a[l.state] ?? 0) + 1;
@@ -52,7 +54,9 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
         {c.status !== "RUNNING" && ctl("start", "Iniciar")}
         {c.status === "RUNNING" && ctl("pause", "Pausar", true)}
         {c.status === "PAUSED" && ctl("resume", "Retomar")}
-        {c.mode === "TEST" ? ctl("mode-prod", "Mudar p/ PRODUÇÃO", true) : ctl("mode-test", "Voltar p/ TESTE")}
+        {c.mode === "TEST"
+          ? ctl("mode-prod", "Mudar p/ PRODUÇÃO", true)
+          : ctl("mode-test", "Voltar p/ TESTE")}
       </div>
 
       <Card>
@@ -60,9 +64,10 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
           <CardTitle className="text-sm">Ritmo</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Até <strong>{c.dailyCap}</strong>/dia · intervalo mín <strong>{c.minIntervalSec}s</strong> ± {c.jitterPct}% ·
-          janela {Math.floor(c.windowStartMin / 60)}h–{Math.floor(c.windowEndMin / 60)}h ({c.timezone}) · dias{" "}
-          {c.sendDays.join(", ")} · enviadas {c.sentCount} · falhas {c.failedCount}
+          Até <strong>{c.dailyCap}</strong>/dia · intervalo mín <strong>{c.minIntervalSec}s</strong>{" "}
+          ± {c.jitterPct}% · janela {Math.floor(c.windowStartMin / 60)}h–
+          {Math.floor(c.windowEndMin / 60)}h ({c.timezone}) · dias {c.sendDays.join(", ")} ·
+          enviadas {c.sentCount} · falhas {c.failedCount}
         </CardContent>
       </Card>
 

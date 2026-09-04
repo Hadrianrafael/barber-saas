@@ -89,7 +89,12 @@ export async function returnConversationToAi(id: string, actorId: string): Promi
 export async function closeConversation(id: string, actorId: string): Promise<void> {
   const conv = await prisma.salesConversation.update({ where: { id }, data: { status: "CLOSED" } });
   await prisma.salesLeadEvent.create({
-    data: { leadId: conv.leadId, kind: "conversation_closed", actorId, data: { conversationId: id } },
+    data: {
+      leadId: conv.leadId,
+      kind: "conversation_closed",
+      actorId,
+      data: { conversationId: id },
+    },
   });
 }
 

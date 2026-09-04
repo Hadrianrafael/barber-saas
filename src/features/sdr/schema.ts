@@ -115,7 +115,10 @@ export const leadUpdateSchema = z.object({
   source: z.string().max(120).optional().nullable(),
   tags: z.array(z.string().max(40)).max(30).optional(),
   status: z.enum([...LEAD_STATUSES] as [string, ...string[]]).optional(),
-  consentBasis: z.enum(["OPT_IN", "LEGITIMATE_INTEREST", "EXISTING_RELATIONSHIP"]).nullable().optional(),
+  consentBasis: z
+    .enum(["OPT_IN", "LEGITIMATE_INTEREST", "EXISTING_RELATIONSHIP"])
+    .nullable()
+    .optional(),
   consentNote: z.string().max(500).optional().nullable(),
 });
 

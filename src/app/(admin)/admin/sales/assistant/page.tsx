@@ -16,8 +16,9 @@ export default async function AssistantPage() {
       <SalesNav active="/admin/sales/assistant" />
       <h1 className="text-xl font-semibold">Assistente de Vendas</h1>
       <p className="text-sm text-muted-foreground">
-        A IA só usa fatos da base de conhecimento — nunca inventa preço, recurso ou condição comercial. Deixe o
-        preço como &quot;consultar no painel&quot; e direcione para a demonstração.
+        A IA só usa fatos da base de conhecimento — nunca inventa preço, recurso ou condição
+        comercial. Deixe o preço como &quot;consultar no painel&quot; e direcione para a
+        demonstração.
       </p>
 
       {all.length > 1 && (

@@ -49,7 +49,9 @@ export default async function CampaignsPage() {
                   </td>
                   <td className="p-2">{c.status}</td>
                   <td className="p-2">
-                    <span className={c.mode === "PRODUCTION" ? "text-emerald-700" : "text-amber-700"}>
+                    <span
+                      className={c.mode === "PRODUCTION" ? "text-emerald-700" : "text-amber-700"}
+                    >
                       {c.mode}
                     </span>
                   </td>

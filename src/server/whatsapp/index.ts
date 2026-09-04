@@ -47,7 +47,8 @@ async function post(path: string, body: unknown) {
     body: JSON.stringify(body),
   });
   const text = await res.text();
-  if (!res.ok) throw new WhatsAppApiError(res.status, `whatsapp ${res.status}: ${text.slice(0, 400)}`);
+  if (!res.ok)
+    throw new WhatsAppApiError(res.status, `whatsapp ${res.status}: ${text.slice(0, 400)}`);
   return text ? (JSON.parse(text) as Record<string, unknown>) : {};
 }
 
@@ -104,7 +105,8 @@ export async function uploadMedia(
     body: form,
   });
   const text = await res.text();
-  if (!res.ok) throw new WhatsAppApiError(res.status, `whatsapp media ${res.status}: ${text.slice(0, 300)}`);
+  if (!res.ok)
+    throw new WhatsAppApiError(res.status, `whatsapp media ${res.status}: ${text.slice(0, 300)}`);
   const id = (JSON.parse(text) as { id?: string }).id;
   if (!id) throw new WhatsAppApiError(502, "whatsapp: no media id");
   return id;

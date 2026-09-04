@@ -3,11 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdminSession } from "@/server/auth/current-user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getConversation } from "@/features/sdr/inbox";
-import {
-  takeOverAction,
-  returnToAiAction,
-  closeConversationAction,
-} from "@/features/sdr/actions";
+import { takeOverAction, returnToAiAction, closeConversationAction } from "@/features/sdr/actions";
 import { SalesNav } from "../../nav";
 import { ManualReply } from "./manual-reply";
 
@@ -53,7 +49,9 @@ export default async function ConversationPage({
           )}
           <form action={closeConversationAction}>
             <input type="hidden" name="id" value={conv.id} />
-            <button className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground">Encerrar</button>
+            <button className="rounded-md border px-3 py-1.5 text-sm text-muted-foreground">
+              Encerrar
+            </button>
           </form>
         </div>
       </div>
@@ -75,9 +73,7 @@ export default async function ConversationPage({
             <div
               key={m.id}
               className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                m.direction === "INBOUND"
-                  ? "bg-muted"
-                  : "ml-auto bg-foreground text-background"
+                m.direction === "INBOUND" ? "bg-muted" : "ml-auto bg-foreground text-background"
               }`}
             >
               <div className="text-[10px] uppercase opacity-60">

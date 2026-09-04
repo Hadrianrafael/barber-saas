@@ -5,7 +5,11 @@ import { isConfigured } from "@/env";
 import { logger } from "@/lib/logger";
 import { storage } from "@/server/storage";
 import { sendEmail } from "@/server/mail";
-import { sendText as waSendText, sendAudio as waSendAudio, WhatsAppApiError } from "@/server/whatsapp";
+import {
+  sendText as waSendText,
+  sendAudio as waSendAudio,
+  WhatsAppApiError,
+} from "@/server/whatsapp";
 import { getVoiceProvider } from "@/server/voice";
 import { getOrCreateConversation, appendMessage, renderTemplate } from "./conversation";
 import { assertContactable, type ContactChannel } from "./guard";
@@ -28,7 +32,10 @@ export interface OutboundResult {
   error?: string;
 }
 
-function vars(lead: Pick<SalesLead, "name" | "barbershopName" | "city">, extra?: Record<string, string>) {
+function vars(
+  lead: Pick<SalesLead, "name" | "barbershopName" | "city">,
+  extra?: Record<string, string>,
+) {
   return {
     nome: lead.name ?? "",
     barbearia: lead.barbershopName ?? "",
@@ -86,7 +93,15 @@ export async function sendOutbound(args: {
       : await getOrCreateConversation({ leadId: lead.id, channel: "EMAIL" });
 
   if (!decision.ok) {
-    return persistBlocked(lead.id, conv.id, channel, kind, body, decision.reason ?? "blocked", args.campaignId);
+    return persistBlocked(
+      lead.id,
+      conv.id,
+      channel,
+      kind,
+      body,
+      decision.reason ?? "blocked",
+      args.campaignId,
+    );
   }
   const to = decision.recipient;
 
@@ -114,7 +129,8 @@ export async function sendOutbound(args: {
         providerMessageId: id,
         status: "SENT",
       });
-      if (args.advanceStatusTo) await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "email" });
+      if (args.advanceStatusTo)
+        await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "email" });
       return { ok: true, messageId: msg.id, providerMessageId: id ?? undefined };
     } catch (e) {
       return recordSendError(lead.id, conv.id, "EMAIL", kind, body, e, args.campaignId);
@@ -123,7 +139,15 @@ export async function sendOutbound(args: {
 
   // --- WHATSAPP --------------------------------------------------------
   if (!isConfigured.whatsapp) {
-    return persistBlocked(lead.id, conv.id, "WHATSAPP", kind, body, "whatsapp_not_configured", args.campaignId);
+    return persistBlocked(
+      lead.id,
+      conv.id,
+      "WHATSAPP",
+      kind,
+      body,
+      "whatsapp_not_configured",
+      args.campaignId,
+    );
   }
 
   try {
@@ -146,7 +170,8 @@ export async function sendOutbound(args: {
         providerMessageId: id,
         status: "SENT",
       });
-      if (args.advanceStatusTo) await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "whatsapp_audio" });
+      if (args.advanceStatusTo)
+        await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "whatsapp_audio" });
       return { ok: true, messageId: msg.id, providerMessageId: id };
     }
 
@@ -163,7 +188,8 @@ export async function sendOutbound(args: {
       providerMessageId: id,
       status: "SENT",
     });
-    if (args.advanceStatusTo) await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "whatsapp" });
+    if (args.advanceStatusTo)
+      await setLeadStatus(lead.id, args.advanceStatusTo, null, { via: "whatsapp" });
     return { ok: true, messageId: msg.id, providerMessageId: id };
   } catch (e) {
     return recordSendError(lead.id, conv.id, "WHATSAPP", kind, body, e, args.campaignId);
@@ -201,7 +227,10 @@ async function recordSendError(
 
 /** Re-attempt a single FAILED outbound message (used by the sdr-followup cron). */
 export async function retryOutbound(messageId: string): Promise<OutboundResult> {
-  const m = await prisma.salesMessage.findUnique({ where: { id: messageId }, include: { lead: true } });
+  const m = await prisma.salesMessage.findUnique({
+    where: { id: messageId },
+    include: { lead: true },
+  });
   if (!m || m.direction !== "OUTBOUND" || m.status !== "FAILED" || !m.lead) {
     return { ok: false, error: "not a retriable message" };
   }

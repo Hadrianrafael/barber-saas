@@ -31,15 +31,27 @@ export function AgentConfigForm({ config }: { config: Cfg }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted-foreground">Nome do assistente</span>
-          <input name="assistantName" defaultValue={config.assistantName} className="h-8 rounded-md border px-2" />
+          <input
+            name="assistantName"
+            defaultValue={config.assistantName}
+            className="h-8 rounded-md border px-2"
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted-foreground">Empresa</span>
-          <input name="companyName" defaultValue={config.companyName} className="h-8 rounded-md border px-2" />
+          <input
+            name="companyName"
+            defaultValue={config.companyName}
+            className="h-8 rounded-md border px-2"
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted-foreground">Modo de resposta</span>
-          <select name="replyMode" defaultValue={config.replyMode} className="h-8 rounded-md border px-2">
+          <select
+            name="replyMode"
+            defaultValue={config.replyMode}
+            className="h-8 rounded-md border px-2"
+          >
             <option value="MIXED">Misto (espelha o lead)</option>
             <option value="TEXT">Só texto</option>
             <option value="AUDIO">Só áudio</option>
@@ -47,7 +59,11 @@ export function AgentConfigForm({ config }: { config: Cfg }) {
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted-foreground">Idioma padrão</span>
-          <select name="defaultLocale" defaultValue={config.defaultLocale} className="h-8 rounded-md border px-2">
+          <select
+            name="defaultLocale"
+            defaultValue={config.defaultLocale}
+            className="h-8 rounded-md border px-2"
+          >
             <option value="pt-BR">pt-BR</option>
             <option value="en">en</option>
             <option value="es">es</option>
@@ -57,20 +73,33 @@ export function AgentConfigForm({ config }: { config: Cfg }) {
 
       <label className="flex flex-col gap-1">
         <span className="text-muted-foreground">
-          Conteúdo por idioma (JSON) — tom, persona, saudação, intro, pitch, CTA, perguntas, objeções, follow-ups
+          Conteúdo por idioma (JSON) — tom, persona, saudação, intro, pitch, CTA, perguntas,
+          objeções, follow-ups
         </span>
-        <textarea name="content" defaultValue={config.content} rows={14} className="rounded-md border p-2 font-mono text-xs" />
+        <textarea
+          name="content"
+          defaultValue={config.content}
+          rows={14}
+          className="rounded-md border p-2 font-mono text-xs"
+        />
       </label>
 
       <label className="flex flex-col gap-1">
         <span className="text-muted-foreground">
           Base de conhecimento (JSON) — resumo do produto, recursos, planos, diferenciais, FAQ
         </span>
-        <textarea name="knowledge" defaultValue={config.knowledge} rows={12} className="rounded-md border p-2 font-mono text-xs" />
+        <textarea
+          name="knowledge"
+          defaultValue={config.knowledge}
+          rows={12}
+          className="rounded-md border p-2 font-mono text-xs"
+        />
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground">Regras de qualificação (JSON) — hotThreshold, warmThreshold, askAbout</span>
+        <span className="text-muted-foreground">
+          Regras de qualificação (JSON) — hotThreshold, warmThreshold, askAbout
+        </span>
         <textarea
           name="qualificationRules"
           defaultValue={config.qualificationRules}
@@ -80,7 +109,9 @@ export function AgentConfigForm({ config }: { config: Cfg }) {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground">Prompt de sistema (opcional — sobrepõe o padrão)</span>
+        <span className="text-muted-foreground">
+          Prompt de sistema (opcional — sobrepõe o padrão)
+        </span>
         <textarea
           name="systemPromptOverride"
           defaultValue={config.systemPromptOverride}
@@ -92,7 +123,10 @@ export function AgentConfigForm({ config }: { config: Cfg }) {
       {state.ok && <p className="text-emerald-700">Salvo.</p>}
       {!state.ok && state.message && <p className="text-red-700">{state.message}</p>}
 
-      <button disabled={pending} className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50">
+      <button
+        disabled={pending}
+        className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50"
+      >
         {pending ? "Salvando…" : "Salvar configuração"}
       </button>
     </form>

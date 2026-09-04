@@ -1,5 +1,11 @@
 import "server-only";
-import type { SalesConversation, SalesMessage, SalesChannel, SalesMsgDirection, SalesMsgKind } from "@prisma/client";
+import type {
+  SalesConversation,
+  SalesMessage,
+  SalesChannel,
+  SalesMsgDirection,
+  SalesMsgKind,
+} from "@prisma/client";
 import { prisma } from "@/server/db/client";
 import { chat, type ChatMessage } from "@/server/ai/openai";
 import { isConfigured } from "@/env";
@@ -77,9 +83,7 @@ export async function appendMessage(args: {
   await prisma.salesLead.update({
     where: { id: args.leadId },
     data:
-      args.direction === "INBOUND"
-        ? { lastReplyAt: new Date() }
-        : { lastContactedAt: new Date() },
+      args.direction === "INBOUND" ? { lastReplyAt: new Date() } : { lastContactedAt: new Date() },
   });
   return msg;
 }

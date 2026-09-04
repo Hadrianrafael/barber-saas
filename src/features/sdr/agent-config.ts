@@ -52,16 +52,29 @@ const DEFAULT_PT: LocaleContent = {
   ],
   painPoints: ["agenda desorganizada", "no-show", "controle de comissão", "cliente sumido"],
   objections: [
-    { q: "está caro", a: "Entendo. Temos plano a partir do Starter; o retorno costuma vir só reduzindo no-show. Posso te mostrar os números?" },
-    { q: "não tenho tempo", a: "A configuração é rápida e a gente te ajuda a migrar. Uns 15 minutos pra começar." },
-    { q: "já uso outro sistema", a: "Legal! O que te incomoda nele hoje? Talvez a gente resolva exatamente isso." },
+    {
+      q: "está caro",
+      a: "Entendo. Temos plano a partir do Starter; o retorno costuma vir só reduzindo no-show. Posso te mostrar os números?",
+    },
+    {
+      q: "não tenho tempo",
+      a: "A configuração é rápida e a gente te ajuda a migrar. Uns 15 minutos pra começar.",
+    },
+    {
+      q: "já uso outro sistema",
+      a: "Legal! O que te incomoda nele hoje? Talvez a gente resolva exatamente isso.",
+    },
   ],
   offerDemoWhen: "quando o lead demonstra interesse ou faz 2+ perguntas sobre o produto",
   handoffWhen: "quando o lead pede proposta formal, fala de contrato, ou fica claramente quente",
-  stopWhen: "quando o lead pede para parar, diz que não tem interesse, ou não responde a 3 follow-ups",
+  stopWhen:
+    "quando o lead pede para parar, diz que não tem interesse, ou não responde a 3 follow-ups",
   followUps: [
     { afterHours: 24, text: "Oi {{nome}}, conseguiu ver minha mensagem? Sem pressa 🙂" },
-    { afterHours: 72, text: "{{nome}}, se agora não for o momento tudo bem — te chamo mais pra frente?" },
+    {
+      afterHours: 72,
+      text: "{{nome}}, se agora não for o momento tudo bem — te chamo mais pra frente?",
+    },
   ],
 };
 

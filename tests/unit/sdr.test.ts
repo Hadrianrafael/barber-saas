@@ -66,7 +66,12 @@ describe("sdr/suppression detectOptOut", () => {
   });
 
   it("does not flag normal replies", () => {
-    for (const s of ["quanto custa?", "pode me mandar mais info", "tenho 3 barbeiros", "que legal"]) {
+    for (const s of [
+      "quanto custa?",
+      "pode me mandar mais info",
+      "tenho 3 barbeiros",
+      "que legal",
+    ]) {
       expect(detectOptOut(s), s).toBe(false);
     }
   });
@@ -78,7 +83,12 @@ describe("sdr/qualification scoreSignals", () => {
   });
 
   it("hot when strong interest + demo + budget", () => {
-    const s: QualSignals = { interest: "high", wantsDemo: true, budgetSignal: "clear", urgency: "now" };
+    const s: QualSignals = {
+      interest: "high",
+      wantsDemo: true,
+      budgetSignal: "clear",
+      urgency: "now",
+    };
     const r = scoreSignals(s);
     expect(r.score).toBeGreaterThanOrEqual(70);
     expect(r.tier).toBe("QUENTE");
@@ -89,7 +99,9 @@ describe("sdr/qualification scoreSignals", () => {
     expect(r.score).toBeGreaterThanOrEqual(55);
     expect(r.tier).not.toBe("FRIO");
     // and combined with a demo ask it is unambiguously hot
-    expect(scoreSignals({ wantsHuman: true, interest: "high", wantsDemo: true }).tier).toBe("QUENTE");
+    expect(scoreSignals({ wantsHuman: true, interest: "high", wantsDemo: true }).tier).toBe(
+      "QUENTE",
+    );
   });
 
   it("respects configured thresholds", () => {
@@ -109,9 +121,9 @@ describe("sdr/campaigns localWindow", () => {
 
 describe("sdr/conversation renderTemplate", () => {
   it("substitutes {{vars}} and blanks unknowns", () => {
-    expect(renderTemplate("Oi {{nome}}, da {{empresa}}!", { nome: "Ana", empresa: "HR Tech" })).toBe(
-      "Oi Ana, da HR Tech!",
-    );
+    expect(
+      renderTemplate("Oi {{nome}}, da {{empresa}}!", { nome: "Ana", empresa: "HR Tech" }),
+    ).toBe("Oi Ana, da HR Tech!");
     expect(renderTemplate("Oi {{nome}}", {})).toBe("Oi ");
   });
 });

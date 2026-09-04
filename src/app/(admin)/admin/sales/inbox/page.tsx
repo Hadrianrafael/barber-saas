@@ -27,12 +27,20 @@ export default async function InboxPage({
       <h1 className="text-xl font-semibold">Inbox ({total})</h1>
 
       <form method="get" className="flex flex-wrap gap-2 text-sm">
-        <select name="handledBy" defaultValue={sp.handledBy ?? ""} className="h-9 rounded-md border px-2">
+        <select
+          name="handledBy"
+          defaultValue={sp.handledBy ?? ""}
+          className="h-9 rounded-md border px-2"
+        >
           <option value="">quem atende: todos</option>
           <option value="AI">IA</option>
           <option value="HUMAN">Humano</option>
         </select>
-        <select name="qualification" defaultValue={sp.qualification ?? ""} className="h-9 rounded-md border px-2">
+        <select
+          name="qualification"
+          defaultValue={sp.qualification ?? ""}
+          className="h-9 rounded-md border px-2"
+        >
           <option value="">qualificação: todas</option>
           {["QUENTE", "MORNO", "FRIO"].map((q) => (
             <option key={q} value={q}>
@@ -68,7 +76,9 @@ export default async function InboxPage({
                     {c.messages[0]?.body?.slice(0, 60) ?? "—"}
                   </td>
                   <td className="p-2">
-                    <span className={c.handledBy === "HUMAN" ? "text-blue-700" : ""}>{c.handledBy}</span>
+                    <span className={c.handledBy === "HUMAN" ? "text-blue-700" : ""}>
+                      {c.handledBy}
+                    </span>
                   </td>
                   <td className="p-2">{c.lead.status}</td>
                   <td className="p-2">{c.lead.qualification ?? "—"}</td>

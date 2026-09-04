@@ -75,7 +75,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   className="flex-1 rounded-md border px-2 py-1"
                 />
               </label>
-              <button className="rounded-md bg-foreground px-3 py-1.5 text-background">Salvar</button>
+              <button className="rounded-md bg-foreground px-3 py-1.5 text-background">
+                Salvar
+              </button>
             </form>
           </CardContent>
         </Card>
@@ -88,7 +90,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <CardContent>
               <form action={setLeadStatusAction} className="flex gap-2 text-sm">
                 <input type="hidden" name="id" value={lead.id} />
-                <select name="status" defaultValue={lead.status} className="h-8 flex-1 rounded-md border px-2">
+                <select
+                  name="status"
+                  defaultValue={lead.status}
+                  className="h-8 flex-1 rounded-md border px-2"
+                >
                   {LEAD_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {s}
@@ -115,7 +121,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <option value="OPT_IN">Opt-in explícito</option>
                   <option value="EXISTING_RELATIONSHIP">Relação existente</option>
                 </select>
-                <input name="note" placeholder="observação" className="h-8 w-full rounded-md border px-2" />
+                <input
+                  name="note"
+                  placeholder="observação"
+                  className="h-8 w-full rounded-md border px-2"
+                />
                 <button className="rounded-md border px-3 py-1">Registrar base</button>
               </form>
             </CardContent>
@@ -151,11 +161,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {lead.conversations.map((c) => (
-              <Link
-                key={c.id}
-                href={`/admin/sales/inbox/${c.id}`}
-                className="block underline"
-              >
+              <Link key={c.id} href={`/admin/sales/inbox/${c.id}`} className="block underline">
                 {c.channel} · {c.status} · {c.handledBy} ·{" "}
                 {c.lastMessageAt ? df.format(c.lastMessageAt) : "—"}
               </Link>

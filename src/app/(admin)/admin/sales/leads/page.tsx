@@ -27,7 +27,10 @@ export default async function SalesLeadsPage({
       <SalesNav active="/admin/sales/leads" />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Leads ({total})</h1>
-        <Link href="/admin/sales/leads/import" className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
+        <Link
+          href="/admin/sales/leads/import"
+          className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+        >
           Importar CSV / XLSX
         </Link>
       </div>
@@ -39,7 +42,11 @@ export default async function SalesLeadsPage({
           placeholder="nome, barbearia, telefone, cidade…"
           className="h-9 min-w-[220px] flex-1 rounded-md border px-3 text-sm"
         />
-        <select name="status" defaultValue={sp.status ?? ""} className="h-9 rounded-md border px-2 text-sm">
+        <select
+          name="status"
+          defaultValue={sp.status ?? ""}
+          className="h-9 rounded-md border px-2 text-sm"
+        >
           <option value="">status: todos</option>
           {LEAD_STATUSES.map((s) => (
             <option key={s} value={s}>

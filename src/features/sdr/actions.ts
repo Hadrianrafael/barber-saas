@@ -153,8 +153,10 @@ export async function optOutLeadAction(fd: FormData): Promise<void> {
 export async function recordConsentAction(fd: FormData): Promise<void> {
   const admin = await requireAdminSession();
   const id = String(fd.get("id") ?? "");
-  const basis = String(fd.get("basis") ?? "") as "OPT_IN" | "LEGITIMATE_INTEREST" | "EXISTING_RELATIONSHIP";
-  if (id && basis) await recordConsent(id, basis, String(fd.get("note") ?? "") || null, admin.userId);
+  const basis = String(fd.get("basis") ?? "") as
+    "OPT_IN" | "LEGITIMATE_INTEREST" | "EXISTING_RELATIONSHIP";
+  if (id && basis)
+    await recordConsent(id, basis, String(fd.get("note") ?? "") || null, admin.userId);
   await audit("sdr.lead.consent", id, { basis });
   revalidatePath(`${ADMIN}/leads/${id}`);
 }
@@ -338,7 +340,9 @@ export async function toggleProductionAction(fd: FormData): Promise<SdrState> {
     const res = await enableProduction(admin.userId);
     await audit("sdr.settings.production_enable", null, { ok: res.ok, reason: res.reason });
     revalidatePath(`${ADMIN}/settings`);
-    return res.ok ? { ok: true, code: "production_on" } : { ok: false, code: "blocked", message: res.reason };
+    return res.ok
+      ? { ok: true, code: "production_on" }
+      : { ok: false, code: "blocked", message: res.reason };
   }
   await disableProduction();
   await audit("sdr.settings.production_disable", null);

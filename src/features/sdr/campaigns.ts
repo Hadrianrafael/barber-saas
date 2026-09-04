@@ -63,7 +63,10 @@ export async function createCampaign(input: unknown, actorId: string): Promise<S
   });
 }
 
-export async function addLeadsToCampaign(campaignId: string, leadIds: string[]): Promise<{ added: number }> {
+export async function addLeadsToCampaign(
+  campaignId: string,
+  leadIds: string[],
+): Promise<{ added: number }> {
   const existing = new Set(
     (
       await prisma.salesCampaignLead.findMany({
@@ -102,7 +105,10 @@ export async function startCampaign(id: string): Promise<void> {
 }
 
 export async function pauseCampaign(id: string): Promise<void> {
-  await prisma.salesCampaign.update({ where: { id }, data: { status: "PAUSED", pausedAt: new Date() } });
+  await prisma.salesCampaign.update({
+    where: { id },
+    data: { status: "PAUSED", pausedAt: new Date() },
+  });
 }
 
 export async function resumeCampaign(id: string): Promise<void> {
@@ -156,12 +162,15 @@ async function sentTodayForCampaign(campaignId: string): Promise<number> {
 /** First-touch copy for a campaign, from the (active) agent config for its locale. */
 async function firstTouchText(c: SalesCampaign): Promise<string> {
   const cfg = c.agentConfigId
-    ? (await prisma.salesAgentConfig.findUnique({ where: { id: c.agentConfigId } })) ??
-      (await getActiveAgentConfig())
+    ? ((await prisma.salesAgentConfig.findUnique({ where: { id: c.agentConfigId } })) ??
+      (await getActiveAgentConfig()))
     : await getActiveAgentConfig();
   const content = localeContent(cfg, c.locale);
   const parts = [content.greeting, content.intro].filter(Boolean) as string[];
-  return renderTemplate(parts.join(" "), { assistente: cfg.assistantName, empresa: cfg.companyName });
+  return renderTemplate(parts.join(" "), {
+    assistente: cfg.assistantName,
+    empresa: cfg.companyName,
+  });
 }
 
 export interface DispatchTickResult {

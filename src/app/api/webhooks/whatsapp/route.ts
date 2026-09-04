@@ -109,7 +109,10 @@ export async function POST(req: NextRequest) {
                 status: mapped,
                 deliveredAt: mapped === "DELIVERED" || mapped === "READ" ? now : undefined,
                 readAt: mapped === "READ" ? now : undefined,
-                error: mapped === "FAILED" ? JSON.stringify(st.errors ?? "failed").slice(0, 500) : undefined,
+                error:
+                  mapped === "FAILED"
+                    ? JSON.stringify(st.errors ?? "failed").slice(0, 500)
+                    : undefined,
               },
             })
             .catch(() => undefined);
@@ -128,7 +131,10 @@ export async function POST(req: NextRequest) {
             mediaId: inbound.audio?.id,
             timestamp: inbound.timestamp ? Number(inbound.timestamp) : undefined,
           }).catch((e) =>
-            logger.warn({ err: (e as Error).message, id: inbound.id }, "sdr.inbound.enqueue_failed"),
+            logger.warn(
+              { err: (e as Error).message, id: inbound.id },
+              "sdr.inbound.enqueue_failed",
+            ),
           );
 
           // Best-effort tenant resolution by the sender's number (single-number

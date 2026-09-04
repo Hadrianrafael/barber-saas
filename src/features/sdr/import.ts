@@ -15,10 +15,7 @@ import { logger } from "@/lib/logger";
 
 export type ParsedSheet = { headers: string[]; rows: string[][] };
 
-export async function parseSpreadsheet(
-  buf: Buffer,
-  filename: string,
-): Promise<ParsedSheet> {
+export async function parseSpreadsheet(buf: Buffer, filename: string): Promise<ParsedSheet> {
   const lower = filename.toLowerCase();
   if (lower.endsWith(".xlsx") || lower.endsWith(".xlsm")) {
     const wb = new ExcelJS.Workbook();
@@ -46,7 +43,12 @@ export async function parseSpreadsheet(
 function cellToString(v: unknown): string {
   if (v == null) return "";
   if (typeof v === "object") {
-    const o = v as { text?: string; result?: unknown; hyperlink?: string; richText?: { text: string }[] };
+    const o = v as {
+      text?: string;
+      result?: unknown;
+      hyperlink?: string;
+      richText?: { text: string }[];
+    };
     if (Array.isArray(o.richText)) return o.richText.map((r) => r.text).join("");
     if (typeof o.text === "string") return o.text;
     if (o.hyperlink) return String(o.hyperlink);
@@ -62,7 +64,12 @@ export async function createImport(args: {
   fileName: string;
   sheet: ParsedSheet;
   createdById: string;
-}): Promise<{ importId: string; headers: string[]; suggestedMapping: (SdrLeadField | null)[]; sampleRows: string[][] }> {
+}): Promise<{
+  importId: string;
+  headers: string[];
+  suggestedMapping: (SdrLeadField | null)[];
+  sampleRows: string[][];
+}> {
   const suggested = autoMap(args.sheet.headers);
   const rec = await prisma.salesImport.create({
     data: {
@@ -98,14 +105,18 @@ function buildRow(
     const val = (cells[i] ?? "").trim();
     if (!val) return;
     if (field === "tags") {
-      rec.tags = val.split(/[;,|]/).map((t) => t.trim()).filter(Boolean);
+      rec.tags = val
+        .split(/[;,|]/)
+        .map((t) => t.trim())
+        .filter(Boolean);
     } else {
       rec[field] = val;
     }
   });
 
   if (defaults.source && !rec.source) rec.source = defaults.source;
-  if (defaults.tags?.length) rec.tags = [...new Set([...(rec.tags as string[] | undefined ?? []), ...defaults.tags])];
+  if (defaults.tags?.length)
+    rec.tags = [...new Set([...((rec.tags as string[] | undefined) ?? []), ...defaults.tags])];
 
   // normalise contact fields
   if (rec.phone) rec.phone = normalizePhone(rec.phone as string) || null;
@@ -131,7 +142,13 @@ export async function previewImport(
   importId: string,
   mapping: (SdrLeadField | null)[],
   defaults: { source?: string; tags?: string[] } = {},
-): Promise<{ total: number; valid: number; duplicates: number; errors: number; errorSamples: string[] }> {
+): Promise<{
+  total: number;
+  valid: number;
+  duplicates: number;
+  errors: number;
+  errorSamples: string[];
+}> {
   const rec = await prisma.salesImport.findUniqueOrThrow({ where: { id: importId } });
   const rows = ((rec.report as { rows?: string[][] })?.rows ?? []) as string[][];
 
@@ -143,7 +160,10 @@ export async function previewImport(
 
   const existing = new Set(
     (
-      await prisma.salesLead.findMany({ select: { dedupeKey: true }, where: { dedupeKey: { not: null } } })
+      await prisma.salesLead.findMany({
+        select: { dedupeKey: true },
+        where: { dedupeKey: { not: null } },
+      })
     ).map((l) => l.dedupeKey!),
   );
 
@@ -190,7 +210,10 @@ export async function commitImport(
 
   const existing = new Set(
     (
-      await prisma.salesLead.findMany({ select: { dedupeKey: true }, where: { dedupeKey: { not: null } } })
+      await prisma.salesLead.findMany({
+        select: { dedupeKey: true },
+        where: { dedupeKey: { not: null } },
+      })
     ).map((l) => l.dedupeKey!),
   );
 

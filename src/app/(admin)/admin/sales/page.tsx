@@ -50,9 +50,15 @@ export default async function SalesDashboardPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span className="rounded border px-2 py-1">OpenAI: {isConfigured.openai ? "configurado" : "não configurado"}</span>
-        <span className="rounded border px-2 py-1">WhatsApp: {isConfigured.whatsapp ? "configurado" : "não configurado"}</span>
-        <span className="rounded border px-2 py-1">E-mail (Resend): {isConfigured.resend ? "configurado" : "console"}</span>
+        <span className="rounded border px-2 py-1">
+          OpenAI: {isConfigured.openai ? "configurado" : "não configurado"}
+        </span>
+        <span className="rounded border px-2 py-1">
+          WhatsApp: {isConfigured.whatsapp ? "configurado" : "não configurado"}
+        </span>
+        <span className="rounded border px-2 py-1">
+          E-mail (Resend): {isConfigured.resend ? "configurado" : "console"}
+        </span>
         <span className="rounded border px-2 py-1">
           Voz: {vs.active}
           {vs.requestedProvider === "external" && !vs.externalConfigured ? " (fallback)" : ""}

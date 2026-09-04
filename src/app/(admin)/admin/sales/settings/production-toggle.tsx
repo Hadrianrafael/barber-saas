@@ -16,7 +16,8 @@ export function ProductionToggle({ testMode }: { testMode: boolean }) {
       const res: SdrState = await toggleProductionAction(fd);
       setConfirming(false);
       if (!res.ok) setMsg(res.message || "Não foi possível ativar a produção.");
-      else setMsg(res.code === "production_on" ? "Produção ativada." : "Voltou para modo de teste.");
+      else
+        setMsg(res.code === "production_on" ? "Produção ativada." : "Voltou para modo de teste.");
     });
   }
 

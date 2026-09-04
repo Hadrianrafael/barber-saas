@@ -26,7 +26,10 @@ export async function runSdrDispatch(now = new Date()): Promise<{
   const due = await dueRetryMessages(100);
   for (const m of due) {
     await enqueueSdrOutboundRetry(m.id).catch((e) =>
-      logger.warn({ err: (e as Error).message, messageId: m.id }, "sdr.dispatch.retry_enqueue_failed"),
+      logger.warn(
+        { err: (e as Error).message, messageId: m.id },
+        "sdr.dispatch.retry_enqueue_failed",
+      ),
     );
     retriesQueued += 1;
   }

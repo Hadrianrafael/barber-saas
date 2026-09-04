@@ -71,7 +71,10 @@ export function scoreSignals(s: QualSignals, cfg?: SalesAgentConfig): QualResult
   if (s.wantsHuman) score += 25;
   score = Math.max(0, Math.min(100, score));
 
-  const rules = (cfg?.qualificationRules ?? {}) as { hotThreshold?: number; warmThreshold?: number };
+  const rules = (cfg?.qualificationRules ?? {}) as {
+    hotThreshold?: number;
+    warmThreshold?: number;
+  };
   const hot = rules.hotThreshold ?? 70;
   const warm = rules.warmThreshold ?? 40;
   const tier = score >= hot ? "QUENTE" : score >= warm ? "MORNO" : "FRIO";

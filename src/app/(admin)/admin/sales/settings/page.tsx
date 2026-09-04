@@ -2,10 +2,7 @@ import { requireAdminSession } from "@/server/auth/current-user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { env } from "@/env";
 import { getSdrSettings, isTestMode } from "@/features/sdr/settings";
-import {
-  updateAllowlistAction,
-  setDailyCapAction,
-} from "@/features/sdr/actions";
+import { updateAllowlistAction, setDailyCapAction } from "@/features/sdr/actions";
 import { SalesNav } from "../nav";
 import { ProductionToggle } from "./production-toggle";
 
@@ -33,14 +30,15 @@ export default async function SalesSettingsPage() {
             </strong>
           </p>
           <p className="text-muted-foreground">
-            Em modo de teste, nenhuma mensagem é enviada para leads reais — só para números/e-mails da lista de
-            autorizados abaixo. A produção precisa ser ligada explicitamente aqui e cada lead precisa de base legal
-            registrada.
+            Em modo de teste, nenhuma mensagem é enviada para leads reais — só para números/e-mails
+            da lista de autorizados abaixo. A produção precisa ser ligada explicitamente aqui e cada
+            lead precisa de base legal registrada.
           </p>
           {envLock ? (
             <p className="rounded-md bg-amber-50 p-3 text-amber-800">
-              A variável de ambiente <code>SDR_TEST_MODE</code> está ativa e trava o sistema em teste. Para liberar a
-              produção, defina <code>SDR_TEST_MODE=false</code> no ambiente e recarregue.
+              A variável de ambiente <code>SDR_TEST_MODE</code> está ativa e trava o sistema em
+              teste. Para liberar a produção, defina <code>SDR_TEST_MODE=false</code> no ambiente e
+              recarregue.
             </p>
           ) : (
             <ProductionToggle testMode={s.testMode} />
