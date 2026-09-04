@@ -115,10 +115,10 @@ export async function commitImportAction(_prev: SdrState, fd: FormData): Promise
 
 // --- leads ----------------------------------------------------------
 
-export async function updateLeadAction(_prev: SdrState, fd: FormData): Promise<SdrState> {
+export async function updateLeadAction(fd: FormData): Promise<void> {
   const admin = await requireAdminSession();
   const id = String(fd.get("id") ?? "");
-  if (!id) return { ok: false, code: "invalid" };
+  if (!id) return;
   const input = {
     name: fd.get("name") ? String(fd.get("name")) : undefined,
     barbershopName: fd.get("barbershopName") ? String(fd.get("barbershopName")) : undefined,
@@ -129,13 +129,10 @@ export async function updateLeadAction(_prev: SdrState, fd: FormData): Promise<S
     state: fd.get("state") != null ? String(fd.get("state")) : undefined,
     notes: fd.get("notes") != null ? String(fd.get("notes")) : undefined,
   };
-  try {
-    await updateLead(id, input, admin.userId);
-    revalidatePath(`${ADMIN}/leads/${id}`);
-    return { ok: true, code: "saved" };
-  } catch (e) {
-    return { ok: false, code: "invalid", message: (e as Error).message };
-  }
+  await updateLead(id, input, admin.userId).catch((e) =>
+    logger.warn({ err: (e as Error).message, id }, "sdr.lead.update_failed"),
+  );
+  revalidatePath(`${ADMIN}/leads/${id}`);
 }
 
 export async function setLeadStatusAction(fd: FormData): Promise<void> {

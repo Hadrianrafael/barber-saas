@@ -75,6 +75,20 @@ point the `secrets[]` entry at `keyVaultUrl`.
 | `whatsapp-webhook-verify-token` | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | you invent a random string |
 | `whatsapp-app-secret` | `WHATSAPP_APP_SECRET` | Meta app → Settings → Basic |
 | `sentry-dsn` | `SENTRY_DSN` | sentry.io → project (optional) |
+| `openai-api-key` | `OPENAI_API_KEY` | platform.openai.com → API keys (SDR brain / transcription / TTS — optional) |
+| `external-voice-base-url` | `EXTERNAL_VOICE_BASE_URL` | your cloned-voice TTS provider (optional; falls back to OpenAI TTS) |
+| `external-voice-api-key` | `EXTERNAL_VOICE_API_KEY` | same provider (optional) |
+| `external-voice-id` | `EXTERNAL_VOICE_ID` | same provider — the voice id to use (optional) |
+
+### SDR / AI Sales Assistant
+
+The whole module degrades cleanly: with `OPENAI_API_KEY` unset it uses a
+deterministic fallback reply, no transcription and no TTS; with the external
+voice unset it uses OpenAI TTS. **`SDR_TEST_MODE=true` (a non-secret env var, set
+in `infra/main.bicep`) is a hard kill-switch** — while it is on, no message is
+sent to a real lead, only to entries on the in-app test allowlist. Production
+sending also requires a per-lead lawful basis recorded in the admin UI and an
+explicit toggle at `/admin/sales/settings`.
 
 Non-secret env values set directly on the Container App (in Bicep `appEnv` or via
 `az containerapp update --set-env-vars`): `APP_URL`, `EMAIL_FROM`,

@@ -49,6 +49,9 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/tenants">Barbearias</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
+            <Link href="/admin/sales">Vendas (IA)</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link href="/admin/audit">Auditoria</Link>
           </Button>
           <form action={adminSignOutAction}>

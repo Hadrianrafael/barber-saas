@@ -4,7 +4,7 @@
 // once per environment into its own resource group. Resources:
 //   Log Analytics · ACR · Postgres Flexible Server · Azure Cache for Redis ·
 //   Storage (Blob) · Key Vault · Container Apps env · web app · worker app ·
-//   two scheduled jobs (reminders, retry-messages).
+//   three scheduled jobs (reminders, retry-messages, sdr-dispatch).
 //
 // SECRETS: this template declares every secret SLOT with an empty placeholder
 // value. Before go-live, put the real values in Key Vault and switch the
@@ -296,6 +296,12 @@ var appSecrets = [
   { name: 'whatsapp-webhook-verify-token', value: unset }
   { name: 'whatsapp-app-secret', value: unset }
   { name: 'sentry-dsn', value: unset }
+  // SDR / AI Sales Assistant. All optional — the module runs in TEST MODE and
+  // degrades cleanly while these are unset.
+  { name: 'openai-api-key', value: unset }
+  { name: 'external-voice-base-url', value: unset }
+  { name: 'external-voice-api-key', value: unset }
+  { name: 'external-voice-id', value: unset }
 ]
 
 var appEnv = [
@@ -310,6 +316,13 @@ var appEnv = [
   { name: 'PLATFORM_FEE_BPS', value: '0' } // your commercial platform fee, basis points
   { name: 'STRIPE_TAX_ENABLED', value: 'false' } // set 'true' after Stripe Tax registrations exist
   { name: 'CHATBOT_MODEL', value: 'claude-sonnet-5' }
+  // SDR: keep the module in TEST MODE in staging until leads are reviewed.
+  { name: 'SDR_TEST_MODE', value: 'true' }
+  { name: 'OPENAI_MODEL', value: 'gpt-4o-mini' }
+  { name: 'OPENAI_TRANSCRIBE_MODEL', value: 'whisper-1' }
+  { name: 'OPENAI_TTS_MODEL', value: 'gpt-4o-mini-tts' }
+  { name: 'OPENAI_TTS_VOICE', value: 'alloy' }
+  { name: 'VOICE_PROVIDER', value: 'openai' }
   { name: 'DATABASE_URL', secretRef: 'database-url' }
   { name: 'DIRECT_DATABASE_URL', secretRef: 'direct-database-url' }
   { name: 'REDIS_URL', secretRef: 'redis-url' }
@@ -327,6 +340,10 @@ var appEnv = [
   { name: 'WHATSAPP_WEBHOOK_VERIFY_TOKEN', secretRef: 'whatsapp-webhook-verify-token' }
   { name: 'WHATSAPP_APP_SECRET', secretRef: 'whatsapp-app-secret' }
   { name: 'SENTRY_DSN', secretRef: 'sentry-dsn' }
+  { name: 'OPENAI_API_KEY', secretRef: 'openai-api-key' }
+  { name: 'EXTERNAL_VOICE_BASE_URL', secretRef: 'external-voice-base-url' }
+  { name: 'EXTERNAL_VOICE_API_KEY', secretRef: 'external-voice-api-key' }
+  { name: 'EXTERNAL_VOICE_ID', secretRef: 'external-voice-id' }
 ]
 
 var registries = [
@@ -513,6 +530,44 @@ resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
           name: 'retry-messages'
           image: image
           command: ['/app/node_modules/.bin/tsx', 'src/worker/cron/retry-messages.ts']
+          resources: { cpu: json('0.25'), memory: '0.5Gi' }
+          env: appEnv
+        }
+      ]
+    }
+  }
+}
+
+// SDR / AI Sales Assistant: paced campaign dispatch + outbound retry. Releases
+// at most one first-touch per running campaign per tick; enforces send window,
+// interval + jitter and daily cap. Downstream `assertContactable` still gates
+// TEST MODE / suppression / consent / global cap.
+resource sdrDispatchJob 'Microsoft.App/jobs@2024-03-01' = {
+  name: '${envPrefix}-cron-sdr'
+  location: location
+  tags: tags
+  identity: appIdentity
+  dependsOn: [acrPull]
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      triggerType: 'Schedule'
+      scheduleTriggerConfig: {
+        cronExpression: '*/5 * * * *'
+        parallelism: 1
+        replicaCompletionCount: 1
+      }
+      replicaTimeout: 300
+      replicaRetryLimit: 1
+      secrets: appSecrets
+      registries: registries
+    }
+    template: {
+      containers: [
+        {
+          name: 'sdr-dispatch'
+          image: image
+          command: ['/app/node_modules/.bin/tsx', 'src/worker/cron/sdr-dispatch.ts']
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: appEnv
         }

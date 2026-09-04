@@ -14,6 +14,7 @@
     "worker:start": "tsx src/worker/index.ts",
     "cron:reminders": "tsx src/worker/cron/reminders.ts",
     "cron:retry-messages": "tsx src/worker/cron/retry-messages.ts",
+    "cron:sdr-dispatch": "tsx src/worker/cron/sdr-dispatch.ts",
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

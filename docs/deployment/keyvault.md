@@ -30,6 +30,10 @@ cleanly. Go-live = fill the values + point `secrets[]` at Key Vault.
 | `whatsapp-webhook-verify-token` | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | you invent a random string | you |
 | `whatsapp-app-secret` | `WHATSAPP_APP_SECRET` | Meta app → Settings → Basic | you |
 | `sentry-dsn` | `SENTRY_DSN` | sentry.io → project (optional) | you |
+| `openai-api-key` | `OPENAI_API_KEY` | platform.openai.com → API keys (SDR — optional) | you |
+| `external-voice-base-url` | `EXTERNAL_VOICE_BASE_URL` | cloned-voice TTS provider (SDR — optional) | you |
+| `external-voice-api-key` | `EXTERNAL_VOICE_API_KEY` | cloned-voice TTS provider (SDR — optional) | you |
+| `external-voice-id` | `EXTERNAL_VOICE_ID` | cloned-voice TTS provider — the voice id (SDR — optional) | you |
 
 Non-secret env values are set directly on the app (`appEnv` in the Bicep, or
 `az containerapp update --set-env-vars`): `APP_URL`, `EMAIL_FROM`,
