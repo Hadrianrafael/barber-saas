@@ -12,6 +12,9 @@ export const QUEUE_NAMES = {
   messages: "messages",
   campaign: "campaign",
   webhooks: "webhooks",
+  /** SDR / AI Sales Assistant. Inbound WA processing (AI turn) is the hot path. */
+  sdrInbound: "sdr-inbound",
+  sdrOutbound: "sdr-outbound",
 } as const;
 
 const connection = redis;
@@ -20,6 +23,8 @@ export const notificationsQueue = new Queue(QUEUE_NAMES.notifications, { connect
 export const messagesQueue = new Queue(QUEUE_NAMES.messages, { connection });
 export const campaignQueue = new Queue(QUEUE_NAMES.campaign, { connection });
 export const webhooksQueue = new Queue(QUEUE_NAMES.webhooks, { connection });
+export const sdrInboundQueue = new Queue(QUEUE_NAMES.sdrInbound, { connection });
+export const sdrOutboundQueue = new Queue(QUEUE_NAMES.sdrOutbound, { connection });
 
 const JOB_OPTS = {
   attempts: 4,
@@ -39,4 +44,26 @@ export async function enqueueAppointmentNotification(
 
 export async function enqueueMessageRetry(messageId: string): Promise<void> {
   await messagesQueue.add("retry", { messageId }, JOB_OPTS);
+}
+
+/** SDR: hand an inbound WhatsApp message off to the async AI pipeline. Keyed by
+ * the provider message id so Meta re-deliveries collapse to one job. */
+export async function enqueueSdrInbound(payload: {
+  provider: string;
+  providerMessageId: string;
+  from: string;
+  type: string;
+  text?: string;
+  mediaId?: string;
+  timestamp?: number;
+}): Promise<void> {
+  await sdrInboundQueue.add("inbound", payload, {
+    ...JOB_OPTS,
+    jobId: `wa:${payload.providerMessageId}`,
+  });
+}
+
+/** SDR: retry a single FAILED outbound sales message. */
+export async function enqueueSdrOutboundRetry(messageId: string): Promise<void> {
+  await sdrOutboundQueue.add("retry", { messageId }, { ...JOB_OPTS, jobId: `retry:${messageId}` });
 }

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env, isConfigured } from "@/env";
 import { prisma } from "@/server/db/client";
 import { logger } from "@/lib/logger";
+import { enqueueSdrInbound } from "@/worker/queues";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
             timestamp?: string;
             text?: { body?: string };
             type?: string;
+            audio?: { id?: string; voice?: boolean };
           }[];
         };
       }[];
@@ -99,9 +101,36 @@ export async function POST(req: NextRequest) {
                   : undefined,
             },
           });
+          // SDR sales messages share the same provider ids.
+          await prisma.salesMessage
+            .updateMany({
+              where: { provider: "whatsapp_cloud", providerMessageId: st.id },
+              data: {
+                status: mapped,
+                deliveredAt: mapped === "DELIVERED" || mapped === "READ" ? now : undefined,
+                readAt: mapped === "READ" ? now : undefined,
+                error: mapped === "FAILED" ? JSON.stringify(st.errors ?? "failed").slice(0, 500) : undefined,
+              },
+            })
+            .catch(() => undefined);
         }
 
         for (const inbound of value.messages ?? []) {
+          // SDR / AI Sales Assistant: hand every inbound off to the async
+          // pipeline (idempotent on the provider message id). It ignores
+          // senders that aren't known sales leads.
+          await enqueueSdrInbound({
+            provider: "whatsapp_cloud",
+            providerMessageId: inbound.id,
+            from: inbound.from,
+            type: inbound.type ?? "text",
+            text: inbound.text?.body,
+            mediaId: inbound.audio?.id,
+            timestamp: inbound.timestamp ? Number(inbound.timestamp) : undefined,
+          }).catch((e) =>
+            logger.warn({ err: (e as Error).message, id: inbound.id }, "sdr.inbound.enqueue_failed"),
+          );
+
           // Best-effort tenant resolution by the sender's number (single-number
           // pilot; per-tenant phone numbers are a follow-up — see ADR 0008).
           const from = inbound.from.replace(/[^\d]/g, "");

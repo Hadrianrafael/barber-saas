@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { QUEUE_NAMES } from "./queues";
 import { processNotificationJob, processMessageJob } from "./processors/messaging";
 import { processCampaignJob } from "./processors/campaign";
+import { processSdrInboundJob, processSdrOutboundJob } from "./processors/sdr";
 
 /**
  * Background worker — its own Azure Container Apps container. Consumes the
@@ -21,6 +22,8 @@ const HANDLERS: Record<string, (job: Job) => Promise<unknown>> = {
     logger.warn({ jobId: job.id }, "webhooks queue has no processor yet");
     return { skipped: true };
   },
+  [QUEUE_NAMES.sdrInbound]: processSdrInboundJob,
+  [QUEUE_NAMES.sdrOutbound]: processSdrOutboundJob,
 };
 
 for (const [name, handler] of Object.entries(HANDLERS)) {

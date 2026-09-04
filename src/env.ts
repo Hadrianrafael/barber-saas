@@ -65,6 +65,27 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional().default(""),
   CHATBOT_MODEL: z.string().default("claude-sonnet-5"),
 
+  // --- SDR / AI Sales Assistant (platform realm) ---
+  OPENAI_API_KEY: z.string().optional().default(""),
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  OPENAI_TRANSCRIBE_MODEL: z.string().default("whisper-1"),
+  OPENAI_TTS_MODEL: z.string().default("gpt-4o-mini-tts"),
+  OPENAI_TTS_VOICE: z.string().default("alloy"),
+  // Optional external / cloned-voice provider. Generic HTTP contract — see
+  // src/server/voice/external.ts. Unconfigured ⇒ system falls back to OpenAI TTS.
+  VOICE_PROVIDER: z.enum(["openai", "external"]).optional().default("openai"),
+  EXTERNAL_VOICE_BASE_URL: z.string().optional().default(""),
+  EXTERNAL_VOICE_API_KEY: z.string().optional().default(""),
+  EXTERNAL_VOICE_ID: z.string().optional().default(""),
+  // Hard safety switch: while true, outbound sales messages only go to numbers/
+  // emails in SDR settings' allowlist. Production requires an explicit in-app
+  // toggle AND this to be false. Default true.
+  SDR_TEST_MODE: z
+    .string()
+    .optional()
+    .default("true")
+    .transform((v) => v !== "false" && v !== "0"),
+
   SENTRY_DSN: z.string().optional().default(""),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });
@@ -98,6 +119,11 @@ export const isConfigured = {
   stripeTax: env.STRIPE_SECRET_KEY.length > 0 && env.STRIPE_TAX_ENABLED,
   whatsapp: env.WHATSAPP_ACCESS_TOKEN.length > 0 && env.WHATSAPP_PHONE_NUMBER_ID.length > 0,
   chatbot: env.ANTHROPIC_API_KEY.length > 0,
+  openai: env.OPENAI_API_KEY.length > 0,
+  externalVoice:
+    env.VOICE_PROVIDER === "external" &&
+    env.EXTERNAL_VOICE_BASE_URL.length > 0 &&
+    env.EXTERNAL_VOICE_API_KEY.length > 0,
 } as const;
 
 export type IntegrationName = keyof typeof isConfigured;
