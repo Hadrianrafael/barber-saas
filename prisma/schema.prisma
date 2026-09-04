@@ -237,8 +237,17 @@ model User {
   emailTokens EmailVerificationToken[]
   resetTokens PasswordResetToken[]
 
-  auditLogs           AuditLog[]           @relation("AuditActorUser")
+  auditLogs             AuditLog[]           @relation("AuditActorUser")
   impersonationsAsAdmin ImpersonationGrant[] @relation("ImpersonationAdmin")
+
+  // SDR / AI sales assistant (platform realm)
+  salesLeadsAssigned         SalesLead[]         @relation("SalesLeadAssignee")
+  salesEventsActed           SalesLeadEvent[]    @relation("SalesEventActor")
+  salesCampaignsCreated      SalesCampaign[]     @relation("SalesCampaignBy")
+  salesConversationsAssigned SalesConversation[] @relation("SalesConvAssignee")
+  salesAgentConfigsUpdated   SalesAgentConfig[]  @relation("SalesAgentBy")
+  salesImportsCreated        SalesImport[]       @relation("SalesImportBy")
+  salesProdEnabled           SalesSetting[]      @relation("SalesProdEnabledBy")
 
   @@index([isPlatformAdmin])
 }
@@ -254,8 +263,8 @@ model Tenant {
   country  String       @default("BR")
 
   // profile / public page
-  logoUrl     String?
-  coverUrl    String?
+  logoUrl      String?
+  coverUrl     String?
   description  String?
   email        String?
   phone        String?
@@ -281,46 +290,46 @@ model Tenant {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  members            TenantMember[]
-  employees          Employee[]
-  services           Service[]
-  customers          Customer[]
-  appointments       Appointment[]
-  blockedTimes       BlockedTime[]
-  businessHours      BusinessHour[]
-  holidays           Holiday[]
-  subscriptions      Subscription[]
-  payments           Payment[]
-  paymentLinks       PaymentLink[]
-  invoices           Invoice[]
-  payoutAccount      PayoutAccount?
-  campaigns          Campaign[]
-  messages           Message[]
-  messageTemplates   MessageTemplate[]
-  conversations      Conversation[]
-  notifications      Notification[]
-  reviews            Review[]
-  loyaltyAccounts    LoyaltyAccount[]
-  loyaltyRewards     LoyaltyReward[]
-  loyaltyTx          LoyaltyTransaction[]
-  coupons            Coupon[]
-  auditLogs          AuditLog[]
-  contactImports     ContactImport[]
-  featureFlags       TenantFeatureFlag[]
-  impersonations     ImpersonationGrant[]
+  members          TenantMember[]
+  employees        Employee[]
+  services         Service[]
+  customers        Customer[]
+  appointments     Appointment[]
+  blockedTimes     BlockedTime[]
+  businessHours    BusinessHour[]
+  holidays         Holiday[]
+  subscriptions    Subscription[]
+  payments         Payment[]
+  paymentLinks     PaymentLink[]
+  invoices         Invoice[]
+  payoutAccount    PayoutAccount?
+  campaigns        Campaign[]
+  messages         Message[]
+  messageTemplates MessageTemplate[]
+  conversations    Conversation[]
+  notifications    Notification[]
+  reviews          Review[]
+  loyaltyAccounts  LoyaltyAccount[]
+  loyaltyRewards   LoyaltyReward[]
+  loyaltyTx        LoyaltyTransaction[]
+  coupons          Coupon[]
+  auditLogs        AuditLog[]
+  contactImports   ContactImport[]
+  featureFlags     TenantFeatureFlag[]
+  impersonations   ImpersonationGrant[]
 
   @@index([status])
 }
 
 model TenantMember {
-  id        String     @id @default(cuid())
-  tenantId  String
-  userId    String
-  role      MemberRole @default(BARBER)
-  invitedAt DateTime?
+  id         String     @id @default(cuid())
+  tenantId   String
+  userId     String
+  role       MemberRole @default(BARBER)
+  invitedAt  DateTime?
   acceptedAt DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -354,19 +363,19 @@ model ImpersonationGrant {
 // ============================================================================
 
 model Session {
-  id             String    @id @default(cuid())
+  id                   String    @id @default(cuid())
   // sha256 of the opaque cookie token; the raw token is never stored.
-  tokenHash      String    @unique
-  userId         String
+  tokenHash            String    @unique
+  userId               String
   // when set, this is a support session acting inside a tenant
   impersonatedTenantId String?
-  isAdminSession Boolean   @default(false)
-  userAgent      String?
-  ip             String?
-  expiresAt      DateTime
-  revokedAt      DateTime?
-  lastSeenAt     DateTime  @default(now())
-  createdAt      DateTime  @default(now())
+  isAdminSession       Boolean   @default(false)
+  userAgent            String?
+  ip                   String?
+  expiresAt            DateTime
+  revokedAt            DateTime?
+  lastSeenAt           DateTime  @default(now())
+  createdAt            DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -422,13 +431,13 @@ model Employee {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user               User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  services           ServiceEmployee[]
-  appointments       Appointment[]
-  workHours          BusinessHour[]
-  blockedTimes       BlockedTime[]
-  preferredByCustomers Customer[]      @relation("PreferredEmployee")
+  tenant               Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                 User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services             ServiceEmployee[]
+  appointments         Appointment[]
+  workHours            BusinessHour[]
+  blockedTimes         BlockedTime[]
+  preferredByCustomers Customer[]        @relation("PreferredEmployee")
 
   @@unique([tenantId, userId])
   @@index([tenantId, status])
@@ -522,41 +531,41 @@ model BlockedTime {
 // ============================================================================
 
 model Customer {
-  id              String         @id @default(cuid())
-  tenantId        String
-  userId          String?
-  name            String
-  email           String?
-  phone           String?
-  whatsapp        String?
-  locale          String         @default("pt-BR")
-  photoUrl        String?
-  birthDate       DateTime?      @db.Date
-  notes           String?
-  tags            String[]       @default([])
+  id                  String            @id @default(cuid())
+  tenantId            String
+  userId              String?
+  name                String
+  email               String?
+  phone               String?
+  whatsapp            String?
+  locale              String            @default("pt-BR")
+  photoUrl            String?
+  birthDate           DateTime?         @db.Date
+  notes               String?
+  tags                String[]          @default([])
   preferredEmployeeId String?
-  status          CustomerStatus @default(ACTIVE)
-  lastVisitAt     DateTime?
-  totalSpentCents Int            @default(0)
-  visitsCount     Int            @default(0)
-  source          AppointmentSource @default(DASHBOARD)
-  anonymizedAt    DateTime? // GDPR erase — PII cleared, appointment history kept
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  status              CustomerStatus    @default(ACTIVE)
+  lastVisitAt         DateTime?
+  totalSpentCents     Int               @default(0)
+  visitsCount         Int               @default(0)
+  source              AppointmentSource @default(DASHBOARD)
+  anonymizedAt        DateTime? // GDPR erase — PII cleared, appointment history kept
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
-  tenant            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user              User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  preferredEmployee Employee?  @relation("PreferredEmployee", fields: [preferredEmployeeId], references: [id], onDelete: SetNull)
-  appointments Appointment[]
-  consents     CommunicationConsent[]
-  payments     Payment[]
-  paymentLinks PaymentLink[]
-  subscriptions Subscription[]
-  conversations Conversation[]
-  reviews      Review[]
-  loyalty      LoyaltyAccount?
-  loyaltyTx    LoyaltyTransaction[]
-  notifications Notification[]
+  tenant            Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  preferredEmployee Employee?              @relation("PreferredEmployee", fields: [preferredEmployeeId], references: [id], onDelete: SetNull)
+  appointments      Appointment[]
+  consents          CommunicationConsent[]
+  payments          Payment[]
+  paymentLinks      PaymentLink[]
+  subscriptions     Subscription[]
+  conversations     Conversation[]
+  reviews           Review[]
+  loyalty           LoyaltyAccount?
+  loyaltyTx         LoyaltyTransaction[]
+  notifications     Notification[]
 
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
@@ -586,41 +595,41 @@ model CommunicationConsent {
 // ============================================================================
 
 model Appointment {
-  id          String            @id @default(cuid())
-  tenantId    String
-  customerId  String
-  employeeId  String
-  serviceId   String
-  status      AppointmentStatus @default(PENDING)
-  source      AppointmentSource @default(DASHBOARD)
-  startsAt    DateTime          @db.Timestamptz(3)
-  endsAt      DateTime          @db.Timestamptz(3)
+  id             String            @id @default(cuid())
+  tenantId       String
+  customerId     String
+  employeeId     String
+  serviceId      String
+  status         AppointmentStatus @default(PENDING)
+  source         AppointmentSource @default(DASHBOARD)
+  startsAt       DateTime          @db.Timestamptz(3)
+  endsAt         DateTime          @db.Timestamptz(3)
   // Snapshot of the service at booking time — later edits to the Service must
   // never rewrite historical appointments.
-  serviceName String
-  durationMin Int
-  bufferMin   Int               @default(0)
-  priceCents  Int
-  currency    String            @default("BRL")
-  notes       String?
-  confirmedAt DateTime?
-  startedAt   DateTime?
-  completedAt DateTime?
-  noShowAt    DateTime?
-  canceledAt  DateTime?
-  cancelReason String?
+  serviceName    String
+  durationMin    Int
+  bufferMin      Int               @default(0)
+  priceCents     Int
+  currency       String            @default("BRL")
+  notes          String?
+  confirmedAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  noShowAt       DateTime?
+  canceledAt     DateTime?
+  cancelReason   String?
   reminderSentAt DateTime? // set once the pre-appointment reminder goes out
   // SHA-256 hash of the opaque token handed to a public/chatbot booker so they
   // can view / cancel / reschedule their own appointment without an account.
-  publicToken String? @unique
-  createdById String? // user who created it (null = public/chatbot)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  publicToken    String?           @unique
+  createdById    String? // user who created it (null = public/chatbot)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  employee Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   payments Payment[]
 
   // Overlap prevention is enforced by (a) a serializable service-layer check and
@@ -637,26 +646,26 @@ model Appointment {
 // ============================================================================
 
 model Plan {
-  id                   String   @id @default(cuid())
-  code                 String   @unique // "starter", "pro", "scale"
-  name                 String
-  description          String?
-  priceCents           Int // monthly price
-  priceCentsYearly     Int? // yearly price (optional)
-  currency             String   @default("BRL")
-  stripeProductId      String? // Stripe Product id (one product, monthly + yearly prices)
-  stripePriceId        String? // Stripe Price id, monthly
-  stripePriceIdYearly  String? // Stripe Price id, yearly
-  trialDays            Int      @default(14)
-  isPublic             Boolean  @default(true)
-  sortOrder            Int      @default(0)
+  id                  String   @id @default(cuid())
+  code                String   @unique // "starter", "pro", "scale"
+  name                String
+  description         String?
+  priceCents          Int // monthly price
+  priceCentsYearly    Int? // yearly price (optional)
+  currency            String   @default("BRL")
+  stripeProductId     String? // Stripe Product id (one product, monthly + yearly prices)
+  stripePriceId       String? // Stripe Price id, monthly
+  stripePriceIdYearly String? // Stripe Price id, yearly
+  trialDays           Int      @default(14)
+  isPublic            Boolean  @default(true)
+  sortOrder           Int      @default(0)
   // hard limits + feature flags, enforced server-side at action time.
   // { maxEmployees, maxServices, maxMonthlyAppointments, maxCustomers,
   //   maxMonthlyMessages, maxCampaignsPerMonth, whatsapp, chatbot, campaigns,
   //   loyalty, maxUnits }
-  limits               Json
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  limits              Json
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   subscriptions Subscription[]
 }
@@ -693,17 +702,17 @@ model Subscription {
 }
 
 model PayoutAccount {
-  id             String              @id @default(cuid())
-  tenantId       String              @unique
-  provider       String              @default("stripe")
-  providerAccountId String?          @unique
-  status         PayoutAccountStatus @default(NOT_CONNECTED)
-  chargesEnabled Boolean             @default(false)
-  payoutsEnabled Boolean             @default(false)
-  requirements   Json?
-  onboardedAt    DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id                String              @id @default(cuid())
+  tenantId          String              @unique
+  provider          String              @default("stripe")
+  providerAccountId String?             @unique
+  status            PayoutAccountStatus @default(NOT_CONNECTED)
+  chargesEnabled    Boolean             @default(false)
+  payoutsEnabled    Boolean             @default(false)
+  requirements      Json?
+  onboardedAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
@@ -734,19 +743,19 @@ model PaymentLink {
 }
 
 model Payment {
-  id              String            @id @default(cuid())
-  tenantId        String
-  purpose         PaymentPurpose
-  status          PaymentStatus     @default(REQUIRES_PAYMENT)
-  method          PaymentMethodKind @default(CARD)
-  amountCents     Int
-  currency        String            @default("BRL")
-  platformFeeCents Int              @default(0)
-  netCents        Int?
-  provider        String            @default("stripe")
-  providerIntentId String?          @unique
+  id               String            @id @default(cuid())
+  tenantId         String
+  purpose          PaymentPurpose
+  status           PaymentStatus     @default(REQUIRES_PAYMENT)
+  method           PaymentMethodKind @default(CARD)
+  amountCents      Int
+  currency         String            @default("BRL")
+  platformFeeCents Int               @default(0)
+  netCents         Int?
+  provider         String            @default("stripe")
+  providerIntentId String?           @unique
   providerChargeId String?
-  refundedCents   Int               @default(0)
+  refundedCents    Int               @default(0)
 
   customerId     String?
   appointmentId  String?
@@ -773,24 +782,24 @@ model Payment {
 }
 
 model Invoice {
-  id                String        @id @default(cuid())
+  id                String            @id @default(cuid())
   tenantId          String
   subscriptionId    String?
   scope             SubscriptionScope @default(PLATFORM)
-  status            InvoiceStatus @default(DRAFT)
+  status            InvoiceStatus     @default(DRAFT)
   amountDueCents    Int
-  amountPaidCents   Int           @default(0)
-  currency          String        @default("BRL")
-  provider          String        @default("stripe")
-  providerInvoiceId String?       @unique
+  amountPaidCents   Int               @default(0)
+  currency          String            @default("BRL")
+  provider          String            @default("stripe")
+  providerInvoiceId String?           @unique
   hostedUrl         String?
   pdfUrl            String?
   periodStart       DateTime?
   periodEnd         DateTime?
   dueAt             DateTime?
   paidAt            DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
@@ -822,7 +831,7 @@ model WebhookEvent {
 
 model MessageTemplate {
   id        String         @id @default(cuid())
-  tenantId  String?        // null = platform default template
+  tenantId  String? // null = platform default template
   key       String // "appointment_confirmation", "reminder", ...
   channel   MessageChannel
   locale    String
@@ -838,24 +847,24 @@ model MessageTemplate {
 }
 
 model Campaign {
-  id            String         @id @default(cuid())
-  tenantId      String
-  name          String
-  channel       MessageChannel
-  status        CampaignStatus @default(DRAFT)
-  locale        String         @default("pt-BR")
-  subject       String?
-  body          String
-  audience      Json // { type: "all" | "segment" | "import" | "inactive" | ..., filters }
-  scheduledAt   DateTime?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  totalRecipients Int          @default(0)
-  sentCount     Int            @default(0)
-  failedCount   Int            @default(0)
-  createdById   String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  tenantId        String
+  name            String
+  channel         MessageChannel
+  status          CampaignStatus @default(DRAFT)
+  locale          String         @default("pt-BR")
+  subject         String?
+  body            String
+  audience        Json // { type: "all" | "segment" | "import" | "inactive" | ..., filters }
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  totalRecipients Int            @default(0)
+  sentCount       Int            @default(0)
+  failedCount     Int            @default(0)
+  createdById     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   messages Message[]
@@ -864,30 +873,30 @@ model Campaign {
 }
 
 model Message {
-  id             String           @id @default(cuid())
-  tenantId       String
-  campaignId     String?
-  conversationId String?
-  customerId     String?
-  channel        MessageChannel
-  direction      MessageDirection @default(OUTBOUND)
-  status         MessageStatus    @default(QUEUED)
-  templateKey    String? // which system template produced this (traceability)
-  category       String           @default("transactional") // transactional | marketing
-  toAddress      String
-  subject        String?
-  body           String
-  locale         String           @default("pt-BR")
-  provider       String?
+  id                String           @id @default(cuid())
+  tenantId          String
+  campaignId        String?
+  conversationId    String?
+  customerId        String?
+  channel           MessageChannel
+  direction         MessageDirection @default(OUTBOUND)
+  status            MessageStatus    @default(QUEUED)
+  templateKey       String? // which system template produced this (traceability)
+  category          String           @default("transactional") // transactional | marketing
+  toAddress         String
+  subject           String?
+  body              String
+  locale            String           @default("pt-BR")
+  provider          String?
   providerMessageId String?
-  error          String?
-  attempts       Int              @default(0)
-  nextAttemptAt  DateTime?
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  readAt         DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  error             String?
+  attempts          Int              @default(0)
+  nextAttemptAt     DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
@@ -902,18 +911,18 @@ model Message {
 }
 
 model Conversation {
-  id          String              @id @default(cuid())
-  tenantId    String
-  customerId  String?
-  channel     ConversationChannel
-  status      ConversationStatus  @default(OPEN)
-  handledBy   ConversationAgent   @default(AI)
-  locale      String              @default("pt-BR")
-  externalId  String? // WhatsApp wa_id / web session id
+  id            String              @id @default(cuid())
+  tenantId      String
+  customerId    String?
+  channel       ConversationChannel
+  status        ConversationStatus  @default(OPEN)
+  handledBy     ConversationAgent   @default(AI)
+  locale        String              @default("pt-BR")
+  externalId    String? // WhatsApp wa_id / web session id
   lastMessageAt DateTime?
-  assignedToId String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  assignedToId  String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -925,13 +934,13 @@ model Conversation {
 }
 
 model ConversationMessage {
-  id             String           @id @default(cuid())
+  id             String   @id @default(cuid())
   conversationId String
   role           String // "customer" | "assistant" | "agent" | "system" | "tool"
   content        String
   toolName       String?
   toolPayload    Json?
-  createdAt      DateTime         @default(now())
+  createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -961,16 +970,16 @@ model Notification {
 }
 
 model Review {
-  id           String   @id @default(cuid())
-  tenantId     String
-  customerId   String?
-  employeeId   String?
+  id            String   @id @default(cuid())
+  tenantId      String
+  customerId    String?
+  employeeId    String?
   appointmentId String?  @unique
-  rating       Int // 1..5
-  comment      String?
-  isPublished  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  rating        Int // 1..5
+  comment       String?
+  isPublished   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -1032,19 +1041,19 @@ model LoyaltyTransaction {
 }
 
 model Coupon {
-  id            String    @id @default(cuid())
-  tenantId      String
-  code          String
-  description   String?
-  percentOff    Int?
+  id             String    @id @default(cuid())
+  tenantId       String
+  code           String
+  description    String?
+  percentOff     Int?
   amountOffCents Int?
-  currency      String    @default("BRL")
+  currency       String    @default("BRL")
   maxRedemptions Int?
-  redeemedCount Int       @default(0)
-  expiresAt     DateTime?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  redeemedCount  Int       @default(0)
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1110,4 +1119,345 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([actorId])
   @@index([action])
+}
+
+// ============================================================================
+// SDR / AI Sales Assistant  (PLATFORM-scoped — HR Tech prospecting barbershops
+// to become SaaS customers. These rows are NOT tenant-owned: no tenantId.)
+// Only PLATFORM_ADMIN may read/write. See src/features/sdr/*.
+// ============================================================================
+
+enum SalesLeadStatus {
+  NOVO
+  ABORDADO
+  CONVERSANDO
+  QUALIFICANDO
+  INTERESSADO
+  DEMONSTRACAO
+  HUMANO
+  SEM_INTERESSE
+  OPT_OUT
+}
+
+enum SalesQualification {
+  FRIO
+  MORNO
+  QUENTE
+}
+
+enum SalesConsentBasis {
+  OPT_IN
+  LEGITIMATE_INTEREST
+  EXISTING_RELATIONSHIP
+}
+
+enum SalesChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum SalesCampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+}
+
+enum SalesCampaignLeadState {
+  PENDING
+  SCHEDULED
+  SENT
+  REPLIED
+  DONE
+  SKIPPED
+  FAILED
+}
+
+enum SalesConvStatus {
+  OPEN
+  SNOOZED
+  CLOSED
+}
+
+enum SalesConvAgent {
+  AI
+  HUMAN
+}
+
+enum SalesMsgDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SalesMsgKind {
+  TEXT
+  AUDIO
+  TEMPLATE
+}
+
+enum SalesMsgStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  RECEIVED
+  FAILED
+}
+
+enum SalesFirstTouch {
+  AUDIO
+  TEXT
+}
+
+enum SalesMode {
+  TEST
+  PRODUCTION
+}
+
+enum SalesReplyMode {
+  TEXT
+  AUDIO
+  MIXED
+}
+
+/// Global SDR settings — a single row keyed "global".
+model SalesSetting {
+  id                    String    @id @default("global")
+  testMode              Boolean   @default(true)
+  testAllowlist         String[]  @default([])
+  dailyGlobalCap        Int       @default(200)
+  productionEnabledAt   DateTime?
+  productionEnabledById String?
+  updatedAt             DateTime  @updatedAt
+
+  productionEnabledBy User? @relation("SalesProdEnabledBy", fields: [productionEnabledById], references: [id], onDelete: SetNull)
+}
+
+model SalesImport {
+  id            String   @id @default(cuid())
+  fileName      String
+  status        String   @default("pending")
+  totalRows     Int      @default(0)
+  validRows     Int      @default(0)
+  duplicateRows Int      @default(0)
+  errorRows     Int      @default(0)
+  importedRows  Int      @default(0)
+  mapping       Json?
+  report        Json?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdBy User?       @relation("SalesImportBy", fields: [createdById], references: [id], onDelete: SetNull)
+  leads     SalesLead[]
+}
+
+model SalesLead {
+  id              String              @id @default(cuid())
+  name            String?
+  barbershopName  String?
+  phone           String?
+  whatsapp        String?
+  email           String?
+  city            String?
+  state           String?
+  website         String?
+  instagram       String?
+  notes           String?
+  source          String?
+  tags            String[]            @default([])
+  status          SalesLeadStatus     @default(NOVO)
+  qualification   SalesQualification?
+  score           Int                 @default(0)
+  qualData        Json?
+  consentBasis    SalesConsentBasis?
+  consentNote     String?
+  optOutAt        DateTime?
+  optOutReason    String?
+  assignedToId    String?
+  lastContactedAt DateTime?
+  lastReplyAt     DateTime?
+  importId        String?
+  dedupeKey       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  assignedTo    User?               @relation("SalesLeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  import        SalesImport?        @relation(fields: [importId], references: [id], onDelete: SetNull)
+  events        SalesLeadEvent[]
+  campaignLinks SalesCampaignLead[]
+  conversations SalesConversation[]
+  messages      SalesMessage[]
+
+  @@unique([dedupeKey])
+  @@index([status])
+  @@index([qualification])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+model SalesLeadEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  kind      String
+  data      Json?
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  lead  SalesLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor User?     @relation("SalesEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+}
+
+model SalesCampaign {
+  id             String              @id @default(cuid())
+  name           String
+  status         SalesCampaignStatus @default(DRAFT)
+  mode           SalesMode           @default(TEST)
+  channel        SalesChannel        @default(WHATSAPP)
+  firstTouch     SalesFirstTouch     @default(AUDIO)
+  locale         String              @default("pt-BR")
+  agentConfigId  String?
+  dailyCap       Int                 @default(30)
+  minIntervalSec Int                 @default(180)
+  jitterPct      Int                 @default(40)
+  windowStartMin Int                 @default(540)
+  windowEndMin   Int                 @default(1140)
+  sendDays       Int[]               @default([1, 2, 3, 4, 5])
+  timezone       String              @default("America/Sao_Paulo")
+  templateName   String?
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  pausedAt       DateTime?
+  completedAt    DateTime?
+  lastDispatchAt DateTime?
+  totalLeads     Int                 @default(0)
+  sentCount      Int                 @default(0)
+  replyCount     Int                 @default(0)
+  failedCount    Int                 @default(0)
+  createdById    String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  agentConfig SalesAgentConfig?   @relation(fields: [agentConfigId], references: [id], onDelete: SetNull)
+  createdBy   User?               @relation("SalesCampaignBy", fields: [createdById], references: [id], onDelete: SetNull)
+  leads       SalesCampaignLead[]
+  messages    SalesMessage[]
+
+  @@index([status])
+  @@index([mode, status])
+}
+
+model SalesCampaignLead {
+  id            String                 @id @default(cuid())
+  campaignId    String
+  leadId        String
+  state         SalesCampaignLeadState @default(PENDING)
+  scheduledFor  DateTime?
+  sentAt        DateTime?
+  skippedReason String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  campaign SalesCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lead     SalesLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@index([campaignId, state])
+  @@index([state, scheduledFor])
+}
+
+model SalesConversation {
+  id             String          @id @default(cuid())
+  leadId         String
+  channel        SalesChannel    @default(WHATSAPP)
+  status         SalesConvStatus @default(OPEN)
+  handledBy      SalesConvAgent  @default(AI)
+  assignedToId   String?
+  stage          SalesLeadStatus @default(ABORDADO)
+  contextSummary String?
+  externalId     String?
+  lastMessageAt  DateTime?
+  snoozedUntil   DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  lead       SalesLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedTo User?          @relation("SalesConvAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages   SalesMessage[]
+
+  @@index([status, handledBy])
+  @@index([leadId])
+}
+
+model SalesMessage {
+  id                String            @id @default(cuid())
+  conversationId    String?
+  leadId            String
+  campaignId        String?
+  direction         SalesMsgDirection
+  kind              SalesMsgKind      @default(TEXT)
+  channel           SalesChannel      @default(WHATSAPP)
+  status            SalesMsgStatus    @default(QUEUED)
+  body              String
+  mediaUrl          String?
+  templateName      String?
+  provider          String?
+  providerMessageId String?
+  error             String?
+  attempts          Int               @default(0)
+  nextAttemptAt     DateTime?
+  tokensIn          Int               @default(0)
+  tokensOut         Int               @default(0)
+  costMicroUsd      Int               @default(0)
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  conversation SalesConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  lead         SalesLead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaign     SalesCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerMessageId])
+  @@index([conversationId, createdAt])
+  @@index([leadId, createdAt])
+  @@index([status, nextAttemptAt])
+  @@index([campaignId])
+}
+
+/// The "Assistente de Vendas" configuration. Multiple allowed; one isActive.
+model SalesAgentConfig {
+  id                   String         @id @default(cuid())
+  name                 String         @default("Assistente de Vendas")
+  isActive             Boolean        @default(false)
+  assistantName        String         @default("Hadrian")
+  companyName          String         @default("HR Tech")
+  replyMode            SalesReplyMode @default(MIXED)
+  defaultLocale        String         @default("pt-BR")
+  content              Json           @default("{}")
+  knowledge            Json           @default("{}")
+  qualificationRules   Json           @default("{}")
+  systemPromptOverride String?
+  updatedById          String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  updatedBy User?           @relation("SalesAgentBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  campaigns SalesCampaign[]
+}
+
+model SalesSuppression {
+  id        String   @id @default(cuid())
+  kind      String
+  value     String
+  reason    String?
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@unique([kind, value])
+  @@index([value])
 }
