@@ -1,24 +1,36 @@
 /**
  * Push local secrets into an Azure Key Vault, mapping env-var names to the
- * Key Vault secret names that `infra/main.bicep` declares.
+ * Key Vault secret names that `infra/main.bicep` reads as `keyVaultUrl`
+ * references for web/worker/jobs (see `kvSecrets` in that file).
  *
- *   npm run keyvault:push -- --vault barber-staging-kv-xxxx --file .env.staging
+ *   npm run keyvault:push -- --vault barber-stg-kv-xxxxxxxx --file .env.staging
  *   npm run keyvault:push -- --vault ... --file ... --dry-run
  *
  * The `--file` is a plain `KEY=value` file you keep LOCAL and GIT-IGNORED
  * (`.env.staging` / `.env.production` are already ignored). This script:
  *   - never prints a secret value (only the var name + "queued"/"ok")
- *   - shells out to `az keyvault secret set` (requires `az login` first)
+ *   - shells out to `az keyvault secret set` (requires `az login` first, and
+ *     the "Key Vault Secrets Officer" role on the vault — it is RBAC-mode)
  *   - skips vars that are empty or not in the mapping
  *   - is idempotent (Key Vault versions the secret)
+ *
+ * After pushing, restart the revision so the app picks up the new value:
+ *   az containerapp revision restart -g <rg> -n <envPrefix>-web  --revision <name>
+ *   az containerapp revision restart -g <rg> -n <envPrefix>-worker --revision <name>
+ * (Container Apps also polls Key Vault-referenced secrets roughly every 30
+ * minutes on its own, but a restart applies it immediately.)
+ *
+ * NOT in this map: database-url / direct-database-url / redis-url /
+ * auth-secret / azure-storage-connection-string — those stay inline in the
+ * Bicep, derived from resources it provisions; pushing them here would do
+ * nothing (nothing reads them from the vault).
  */
 /* eslint-disable no-console */
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
-// env var  ->  Key Vault secret name (must match infra/main.bicep `secrets[]`)
+// env var  ->  Key Vault secret name (must match infra/main.bicep `kvSecretSlots`)
 const MAP: Record<string, string> = {
-  AUTH_SECRET: "auth-secret",
   STRIPE_SECRET_KEY: "stripe-secret-key",
   STRIPE_PUBLISHABLE_KEY: "stripe-publishable-key",
   STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret",
@@ -31,6 +43,10 @@ const MAP: Record<string, string> = {
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: "whatsapp-webhook-verify-token",
   WHATSAPP_APP_SECRET: "whatsapp-app-secret",
   SENTRY_DSN: "sentry-dsn",
+  OPENAI_API_KEY: "openai-api-key",
+  EXTERNAL_VOICE_BASE_URL: "external-voice-base-url",
+  EXTERNAL_VOICE_API_KEY: "external-voice-api-key",
+  EXTERNAL_VOICE_ID: "external-voice-id",
 };
 
 const args = process.argv.slice(2);

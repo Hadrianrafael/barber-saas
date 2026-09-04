@@ -6,10 +6,16 @@
 //   Storage (Blob) · Key Vault · Container Apps env · web app · worker app ·
 //   three scheduled jobs (reminders, retry-messages, sdr-dispatch).
 //
-// SECRETS: this template declares every secret SLOT with an empty placeholder
-// value. Before go-live, put the real values in Key Vault and switch the
-// `secrets[]` entries from inline `value: ''` to
-// `keyVaultUrl: '<vault>/secrets/<name>'` + `identity: 'system'`, then redeploy.
+// SECRETS: every external-integration secret (Stripe, Resend, Anthropic,
+// WhatsApp, Sentry, OpenAI, external voice) is a Key Vault REFERENCE
+// (`keyVaultUrl` + `identity`, see `kvSecretSlots`/`kvSecretsAccess` below) —
+// this template only reads those slots, it never writes a value into them, so
+// redeploying can never overwrite a real credential. Populate them with
+// `az keyvault secret set` or `npm run keyvault:push` (see
+// docs/deployment/keyvault.md); each slot must exist in the vault before the
+// first deploy that references it. `database-url` / `direct-database-url` /
+// `redis-url` / `auth-secret` / `azure-storage-connection-string` stay inline
+// because they are derived from resources this template itself provisions.
 // Nothing sensitive lives in this file, in Git, or in the image.
 
 @description('Base name for all resources, e.g. "barber"')
@@ -36,7 +42,7 @@ param pgAdminPassword string
 param appUrl string
 
 @secure()
-@description('App session signing secret (48+ random bytes). Generated per deploy; move to Key Vault for go-live.')
+@description('App session signing secret (48+ random bytes). Stable across deploys — pass the value already in use, not a freshly generated one.')
 param authSecret string
 
 var isProd = environment == 'prod'
@@ -233,6 +239,49 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
+// Integration secret slots that live IN Key Vault (go-live path). Bicep never
+// creates or writes these — only builds the `<vault>/secrets/<name>` URL a
+// Container App secret uses to read the CURRENT value at runtime — so a
+// redeploy can never overwrite a real credential an operator has put in the
+// vault. Each slot must exist in the vault before the first deploy that
+// references it (see docs/deployment/keyvault.md); until then it's fine for
+// it to hold the same single-space placeholder used for the inline slots.
+var kvSecretSlots = [
+  'stripe-secret-key'
+  'stripe-publishable-key'
+  'stripe-webhook-secret'
+  'stripe-connect-webhook-secret'
+  'resend-api-key'
+  'anthropic-api-key'
+  'whatsapp-phone-number-id'
+  'whatsapp-business-account-id'
+  'whatsapp-access-token'
+  'whatsapp-webhook-verify-token'
+  'whatsapp-app-secret'
+  'sentry-dsn'
+  'openai-api-key'
+  'external-voice-base-url'
+  'external-voice-api-key'
+  'external-voice-id'
+]
+
+// Lets web/worker/jobs resolve `keyVaultUrl` secrets at runtime. Role id
+// 4633458b-17de-408a-b874-0445c86b69e6 = built-in "Key Vault Secrets User"
+// (read-only data-plane access — no write, no admin).
+var kvSecretsUserRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
+resource kvSecretsAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(kv.id, uami.id, 'kv-secrets-user')
+  scope: kv
+  properties: {
+    roleDefinitionId: kvSecretsUserRoleId
+    principalId: uami.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Container Apps environment
 // ---------------------------------------------------------------------------
@@ -273,36 +322,35 @@ var storageSuffix = 'core.windows.net'
 var storageConn = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${storageSuffix}'
 var storagePublicUrl = '${storage.properties.primaryEndpoints.blob}uploads'
 
-// Integration secret SLOTS. The Container Apps API rejects an empty secret
-// `value`, so unconfigured slots carry a single space — `env.ts` trims it back
-// to "" so `isConfigured.*` stays honest and every feature degrades cleanly.
-// Swap each for a Key Vault reference (`keyVaultUrl` + `identity`) at go-live.
-var unset = ' '
-var appSecrets = [
+// database-url / direct-database-url / redis-url / auth-secret /
+// azure-storage-connection-string are derived straight from resources this
+// same template provisions (or the `authSecret` deploy param) — they stay
+// inline; there is no external credential to centralise for these.
+var appSecretsInline = [
   { name: 'database-url', value: dbUrl }
   { name: 'direct-database-url', value: dbDirectUrl }
   { name: 'redis-url', value: redisUrl }
   { name: 'auth-secret', value: authSecret }
   { name: 'azure-storage-connection-string', value: storageConn }
-  { name: 'stripe-secret-key', value: unset }
-  { name: 'stripe-publishable-key', value: unset }
-  { name: 'stripe-webhook-secret', value: unset }
-  { name: 'stripe-connect-webhook-secret', value: unset }
-  { name: 'resend-api-key', value: unset }
-  { name: 'anthropic-api-key', value: unset }
-  { name: 'whatsapp-phone-number-id', value: unset }
-  { name: 'whatsapp-business-account-id', value: unset }
-  { name: 'whatsapp-access-token', value: unset }
-  { name: 'whatsapp-webhook-verify-token', value: unset }
-  { name: 'whatsapp-app-secret', value: unset }
-  { name: 'sentry-dsn', value: unset }
-  // SDR / AI Sales Assistant. All optional — the module runs in TEST MODE and
-  // degrades cleanly while these are unset.
-  { name: 'openai-api-key', value: unset }
-  { name: 'external-voice-base-url', value: unset }
-  { name: 'external-voice-api-key', value: unset }
-  { name: 'external-voice-id', value: unset }
 ]
+
+// Every other integration secret is a Key Vault reference (see
+// `kvSecretSlots` / `kvSecretsAccess` above): the value lives only in the
+// vault, an operator sets it with `az keyvault secret set` (or
+// `npm run keyvault:push`), and redeploying this template never touches it.
+// `kv.name` (not `.properties.vaultUri`) is used because a var's for-loop can
+// only reference early-bound resource properties (id/name/type/apiVersion) —
+// the vault DNS name is deterministic from the name, same as `storageSuffix`
+// above; both would need `environment().*Suffix` for sovereign/gov clouds.
+var appSecretsFromKv = [
+  for slot in kvSecretSlots: {
+    name: slot
+    keyVaultUrl: 'https://${kv.name}.vault.azure.net/secrets/${slot}'
+    identity: uami.id
+  }
+]
+
+var appSecrets = concat(appSecretsInline, appSecretsFromKv)
 
 var appEnv = [
   { name: 'NODE_ENV', value: 'production' }
@@ -367,7 +415,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull, redisApp]
+  dependsOn: [acrPull, redisApp, kvSecretsAccess]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -440,7 +488,7 @@ resource worker 'Microsoft.App/containerApps@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull, redisApp]
+  dependsOn: [acrPull, redisApp, kvSecretsAccess]
   properties: {
     managedEnvironmentId: cae.id
     configuration: {
@@ -474,7 +522,7 @@ resource remindersJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, kvSecretsAccess]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -509,7 +557,7 @@ resource retryMessagesJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, kvSecretsAccess]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -547,7 +595,7 @@ resource sdrDispatchJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, kvSecretsAccess]
   properties: {
     environmentId: cae.id
     configuration: {
@@ -585,7 +633,7 @@ resource migrateJob 'Microsoft.App/jobs@2024-03-01' = {
   location: location
   tags: tags
   identity: appIdentity
-  dependsOn: [acrPull]
+  dependsOn: [acrPull, kvSecretsAccess]
   properties: {
     environmentId: cae.id
     configuration: {

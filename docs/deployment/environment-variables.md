@@ -53,16 +53,20 @@ Nothing sensitive is shared between environments.
 
 ## Azure Key Vault secret names
 
-`infra/main.bicep` declares these slots. Set the value with
-`az keyvault secret set --vault-name <kv> --name <secret> --value <…>`, then
-point the `secrets[]` entry at `keyVaultUrl`.
+`infra/main.bicep` declares these slots. The Stripe/Resend/Anthropic/WhatsApp/
+Sentry/OpenAI/voice ones are **already** Key Vault references (`keyVaultUrl` +
+the app's identity) — set the value with
+`az keyvault secret set --vault-name <kv> --name <secret> --value <…>` and
+restart the revision; no Bicep change or redeploy needed. Full walkthrough
+(including the one-time RBAC grant the vault requires) in
+[`keyvault.md`](./keyvault.md).
 
 | Key Vault secret | Env var | Get it from |
 |---|---|---|
-| `auth-secret` | `AUTH_SECRET` | `openssl rand -base64 48` |
-| `database-url` | `DATABASE_URL` / `DIRECT_DATABASE_URL` | **derived by Bicep** — no action |
-| `redis-url` | `REDIS_URL` | **derived by Bicep** — no action |
-| `azure-storage-connection-string` | `AZURE_STORAGE_CONNECTION_STRING` | **derived by Bicep** — no action |
+| `auth-secret` *(inline, not in Key Vault)* | `AUTH_SECRET` | `openssl rand -base64 48` — pass the same value on every redeploy |
+| `database-url` *(inline)* | `DATABASE_URL` / `DIRECT_DATABASE_URL` | **derived by Bicep** — no action |
+| `redis-url` *(inline)* | `REDIS_URL` | **derived by Bicep** — no action |
+| `azure-storage-connection-string` *(inline)* | `AZURE_STORAGE_CONNECTION_STRING` | **derived by Bicep** — no action |
 | `stripe-secret-key` | `STRIPE_SECRET_KEY` | Stripe → Developers → API keys |
 | `stripe-publishable-key` | `STRIPE_PUBLISHABLE_KEY` | Stripe → Developers → API keys |
 | `stripe-webhook-secret` | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → the **platform** endpoint |
@@ -99,7 +103,9 @@ Non-secret env values set directly on the Container App (in Bicep `appEnv` or vi
 
 - **Local**: `.env` (git-ignored). Copy `.env.example`.
 - **Tests**: `.env.test` (git-ignored) — `tests/setup.ts` loads it.
-- **Azure**: Key Vault secrets, referenced by the Container Apps as `secretRef`
-  (see `infra/main.bicep`). **Never in Git, never in the Docker image, never in
-  logs** (the pino redaction list + the `logFinancialEvent` allowlist enforce
-  this), never in this or any public doc.
+- **Azure**: the 16 external-integration secrets live in Key Vault, referenced
+  by the Container Apps as `keyVaultUrl`; the 5 resource-derived/internal ones
+  are inline, set by the Bicep deploy itself (see `infra/main.bicep` and
+  [`keyvault.md`](./keyvault.md)). **Never in Git, never in the Docker image,
+  never in logs** (the pino redaction list + the `logFinancialEvent` allowlist
+  enforce this), never in this or any public doc.
